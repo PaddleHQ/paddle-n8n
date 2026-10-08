@@ -1,0 +1,57 @@
+{
+	"name": "@paddle/n8n-nodes-paddle",
+	"version": "0.1.0",
+	"description": "n8n nodes for Paddle Billing: manage customers, catalog, subscriptions and transactions, and trigger workflows from Paddle webhooks.",
+	"license": "MIT",
+	"homepage": "https://github.com/PaddleHQ/paddle-n8n",
+	"keywords": [
+		"n8n-community-node-package",
+		"paddle",
+		"paddle-billing",
+		"billing",
+		"subscriptions"
+	],
+	"author": {
+		"name": "Paddle",
+		"email": "kieran.taylor@paddle.com"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/PaddleHQ/paddle-n8n.git"
+	},
+	"scripts": {
+		"build": "n8n-node build",
+		"build:watch": "tsc --watch",
+		"dev": "n8n-node dev",
+		"dev:docker": "n8n-node build && node scripts/dev-docker.mjs",
+		"lint": "n8n-node lint",
+		"lint:fix": "n8n-node lint --fix",
+		"test": "n8n-node build && node --test test/",
+		"release": "n8n-node release",
+		"prepublishOnly": "n8n-node prerelease"
+	},
+	"files": [
+		"dist"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": 1,
+		"strict": true,
+		"credentials": [
+			"dist/credentials/PaddleBillingApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/Paddle/Paddle.node.js",
+			"dist/nodes/PaddleTrigger/PaddleTrigger.node.js"
+		]
+	},
+	"devDependencies": {
+		"@n8n/node-cli": "*",
+		"eslint": "9.32.0",
+		"prettier": "3.6.2",
+		"release-it": "^21.1.0",
+		"typescript": "5.9.2"
+	},
+	"peerDependencies": {
+		"n8n-workflow": "*"
+	}
+}
