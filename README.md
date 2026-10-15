@@ -15,7 +15,7 @@ Official [Paddle Billing](https://www.paddle.com/billing) nodes for [n8n](https:
 
 ### From the n8n editor
 
-Once the node is verified by n8n, you can install it on n8n Cloud and self-hosted n8n from the editor:
+On n8n Cloud and self-hosted n8n:
 
 1. In n8n, open the nodes panel and search for **Paddle Billing**.
 2. Select the node and click **Install**.
