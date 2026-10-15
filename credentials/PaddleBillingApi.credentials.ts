@@ -11,7 +11,8 @@ export class PaddleBillingApi implements ICredentialType {
 
 	displayName = 'Paddle Billing API';
 
-	icon: Icon = { light: 'file:../icons/paddle.svg', dark: 'file:../icons/paddle.dark.svg' };
+	// The icon has its own background, so one file works on light and dark themes.
+	icon: Icon = { light: 'file:../icons/paddle.svg', dark: 'file:../icons/paddle.svg' };
 
 	documentationUrl = 'https://developer.paddle.com/api-reference/about/authentication';
 

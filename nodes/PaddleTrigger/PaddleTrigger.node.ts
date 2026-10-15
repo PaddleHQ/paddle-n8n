@@ -80,7 +80,8 @@ export class PaddleTrigger implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Paddle Billing Trigger',
 		name: 'paddleTrigger',
-		icon: { light: 'file:../../icons/paddle.svg', dark: 'file:../../icons/paddle.dark.svg' },
+		// The icon has its own background, so one file works on light and dark themes.
+		icon: { light: 'file:../../icons/paddle.svg', dark: 'file:../../icons/paddle.svg' },
 		group: ['trigger'],
 		version: 1,
 		subtitle: '={{($parameter["events"] || []).join(", ")}}',
