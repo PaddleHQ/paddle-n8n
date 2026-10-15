@@ -1,12 +1,13 @@
 import type {
 	IDataObject,
-	IExecuteFunctions,
 	IHookFunctions,
 	IHttpRequestMethods,
 	IHttpRequestOptions,
+	IN8nHttpFullResponse,
 	ILoadOptionsFunctions,
 	IWebhookFunctions,
 } from 'n8n-workflow';
+import { paddleApiError } from './errors';
 
 export const BASE_URLS = {
 	live: 'https://api.paddle.com',
@@ -15,19 +16,11 @@ export const BASE_URLS = {
 
 // Expression used by the declarative node's requestDefaults. Keep in sync with the
 // credential test in PaddleBillingApi.credentials.ts.
-export const BASE_URL_EXPRESSION = `={{$credentials.environment === "custom" ? String($credentials.baseUrl).replace(/\\/+$/, "") : $credentials.environment === "sandbox" ? "${BASE_URLS.sandbox}" : "${BASE_URLS.live}"}}`;
+export const BASE_URL_EXPRESSION = `={{$credentials.environment === "sandbox" ? "${BASE_URLS.sandbox}" : "${BASE_URLS.live}"}}`;
 
 type PaddleCredentials = {
-	environment?: keyof typeof BASE_URLS | 'custom';
-	baseUrl?: string;
+	environment?: keyof typeof BASE_URLS;
 };
-
-function resolveBaseUrl(credentials: PaddleCredentials): string {
-	if (credentials.environment === 'custom' && credentials.baseUrl) {
-		return credentials.baseUrl.replace(/\/+$/, '');
-	}
-	return credentials.environment === 'sandbox' ? BASE_URLS.sandbox : BASE_URLS.live;
-}
 
 export const PADDLE_HEADERS = {
 	Accept: 'application/json',
@@ -47,15 +40,15 @@ export type PaddleListResponse<T> = {
 };
 
 export async function paddleApiRequest(
-	this: IHookFunctions | IExecuteFunctions | ILoadOptionsFunctions | IWebhookFunctions,
+	this: IHookFunctions | ILoadOptionsFunctions | IWebhookFunctions,
 	method: IHttpRequestMethods,
 	endpoint: string,
 	body?: IDataObject,
 	qs?: IDataObject,
 	url?: string,
 ) {
-	const credentials = await this.getCredentials<PaddleCredentials>('paddleBillingApi');
-	const baseUrl = resolveBaseUrl(credentials);
+	const { environment } = await this.getCredentials<PaddleCredentials>('paddleBillingApi');
+	const baseUrl = environment === 'sandbox' ? BASE_URLS.sandbox : BASE_URLS.live;
 
 	const options: IHttpRequestOptions = {
 		method,
@@ -64,7 +57,18 @@ export async function paddleApiRequest(
 		qs,
 		body,
 		json: true,
+		returnFullResponse: true,
+		ignoreHttpStatusErrors: true,
 	};
 
-	return this.helpers.httpRequestWithAuthentication.call(this, 'paddleBillingApi', options);
+	const response = (await this.helpers.httpRequestWithAuthentication.call(
+		this,
+		'paddleBillingApi',
+		options,
+	)) as IN8nHttpFullResponse;
+
+	if (response.statusCode >= 400) {
+		throw paddleApiError(this.getNode(), response.statusCode, response.body);
+	}
+	return response.body as IDataObject;
 }

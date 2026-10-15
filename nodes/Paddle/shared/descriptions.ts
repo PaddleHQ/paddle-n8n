@@ -1,4 +1,11 @@
-import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
+import type {
+	IDataObject,
+	IExecuteSingleFunctions,
+	INodeExecutionData,
+	INodeProperties,
+	INodePropertyOptions,
+} from 'n8n-workflow';
+import { throwOnPaddleError } from './errors';
 import { paddlePagination } from './pagination';
 
 type DisplayShow = Record<string, string[]>;
@@ -237,11 +244,91 @@ export function queryFilter(
 	};
 }
 
+// Every operation's output: raise Paddle errors, then unwrap Paddle's `data` envelope.
 export const dataRootProperty = {
 	postReceive: [
+		throwOnPaddleError,
 		{
 			type: 'rootProperty' as const,
 			properties: { property: 'data' },
 		},
 	],
 };
+
+// "Sort" collection for Get Many, sent as Paddle's `order_by=<field>[ASC|DESC]`.
+// `fields` lists the endpoint's sortable fields other than ID; Paddle can always sort by ID.
+export function sortField(show: DisplayShow, fields: INodePropertyOptions[] = []): INodeProperties {
+	const orderBy =
+		'={{ ($parameter.sort.field || "id") + "[" + ($parameter.sort.direction || "ASC") + "]" }}';
+	const send = { type: 'query' as const, property: 'order_by', value: orderBy };
+
+	const options: INodeProperties[] = [
+		{
+			displayName: 'Direction',
+			name: 'direction',
+			type: 'options',
+			options: [
+				{ name: 'Ascending', value: 'ASC' },
+				{ name: 'Descending', value: 'DESC' },
+			],
+			default: 'ASC',
+			description: fields.length
+				? 'Order of the results'
+				: 'Order of the results by ID. Paddle IDs increase over time, so Descending returns the newest first.',
+			routing: { send },
+		},
+	];
+	if (fields.length) {
+		options.push({
+			displayName: 'Sort By',
+			name: 'field',
+			type: 'options',
+			options: [{ name: 'ID', value: 'id' }, ...fields].sort((a, b) =>
+				a.name.localeCompare(b.name),
+			),
+			default: 'id',
+			description: 'Field to sort the results by',
+			routing: { send },
+		});
+	}
+
+	return {
+		displayName: 'Sort',
+		name: 'sort',
+		type: 'collection',
+		placeholder: 'Add Sort Option',
+		default: {},
+		displayOptions: { show },
+		description: 'By default, Paddle returns the newest records first',
+		options,
+	};
+}
+
+// "Simplify" toggle for Get and Get Many. `simplify` picks at most 10 fields, flattened
+// where possible, from one Paddle record.
+export function simplifyField(
+	show: DisplayShow,
+	simplify: (record: IDataObject) => IDataObject,
+): INodeProperties {
+	return {
+		displayName: 'Simplify',
+		name: 'simplify',
+		type: 'boolean',
+		default: true,
+		displayOptions: { show },
+		description: 'Whether to return a simplified version of the response instead of the raw data',
+		routing: {
+			output: {
+				postReceive: [
+					async function (
+						this: IExecuteSingleFunctions,
+						items: INodeExecutionData[],
+					): Promise<INodeExecutionData[]> {
+						if (!this.getNodeParameter('simplify', true)) return items;
+						return items.map((item) => ({ ...item, json: simplify(item.json) }));
+					},
+				],
+			},
+		},
+	};
+}

@@ -10,7 +10,10 @@ import {
 	multiQueryFilter,
 	queryFilter,
 	resourceLocator,
+	simplifyField,
+	sortField,
 } from '../shared/descriptions';
+import { simplifyPrice } from '../shared/simplify';
 
 const show = { resource: ['price'] };
 const showFor = (...operation: string[]) => ({ ...show, operation });
@@ -238,6 +241,9 @@ export const priceDescription: INodeProperties[] = [
 		show: showFor('archive', 'get', 'update'),
 	}),
 
+	// Get
+	simplifyField(showFor('get'), simplifyPrice),
+
 	// Create
 	{
 		...resourceLocator({
@@ -355,6 +361,7 @@ export const priceDescription: INodeProperties[] = [
 
 	// Get Many
 	...getManyFields(showFor('getAll'), 200),
+	simplifyField(showFor('getAll'), simplifyPrice),
 	{
 		displayName: 'Filters',
 		name: 'filters',
@@ -398,4 +405,15 @@ export const priceDescription: INodeProperties[] = [
 			},
 		],
 	},
+	sortField(showFor('getAll'), [
+		{ name: 'Billing Frequency', value: 'billing_cycle.frequency' },
+		{ name: 'Billing Interval', value: 'billing_cycle.interval' },
+		{ name: 'Maximum Quantity', value: 'quantity.maximum' },
+		{ name: 'Minimum Quantity', value: 'quantity.minimum' },
+		{ name: 'Product ID', value: 'product_id' },
+		{ name: 'Status', value: 'status' },
+		{ name: 'Tax Mode', value: 'tax_mode' },
+		{ name: 'Unit Price Amount', value: 'unit_price.amount' },
+		{ name: 'Unit Price Currency', value: 'unit_price.currency_code' },
+	]),
 ];

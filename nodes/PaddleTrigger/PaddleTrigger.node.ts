@@ -197,7 +197,10 @@ export class PaddleTrigger implements INodeType {
 				const events = await resolveEvents.call(this);
 
 				if (events.length === 0) {
-					throw new NodeOperationError(this.getNode(), 'Select at least one event to listen to');
+					throw new NodeOperationError(this.getNode(), "No events selected in 'Events'", {
+						description:
+							"Choose at least one event in 'Events', or choose '*' to receive every event.",
+					});
 				}
 
 				const workflowName = this.getWorkflow().name;

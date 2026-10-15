@@ -8,7 +8,10 @@ import {
 	multiQueryFilter,
 	queryFilter,
 	resourceLocator,
+	simplifyField,
+	sortField,
 } from '../shared/descriptions';
+import { simplifyProduct } from '../shared/simplify';
 
 const show = { resource: ['product'] };
 const showFor = (...operation: string[]) => ({ ...show, operation });
@@ -140,6 +143,9 @@ export const productDescription: INodeProperties[] = [
 		show: showFor('archive', 'get', 'update'),
 	}),
 
+	// Get
+	simplifyField(showFor('get'), simplifyProduct),
+
 	// Create
 	{
 		displayName: 'Name',
@@ -225,6 +231,7 @@ export const productDescription: INodeProperties[] = [
 
 	// Get Many
 	...getManyFields(showFor('getAll'), 200),
+	simplifyField(showFor('getAll'), simplifyProduct),
 	{
 		displayName: 'Filters',
 		name: 'filters',
@@ -254,4 +261,13 @@ export const productDescription: INodeProperties[] = [
 			},
 		],
 	},
+	sortField(showFor('getAll'), [
+		{ name: 'Created At', value: 'created_at' },
+		{ name: 'Description', value: 'description' },
+		{ name: 'Image URL', value: 'image_url' },
+		{ name: 'Name', value: 'name' },
+		{ name: 'Status', value: 'status' },
+		{ name: 'Tax Category', value: 'tax_category' },
+		{ name: 'Updated At', value: 'updated_at' },
+	]),
 ];

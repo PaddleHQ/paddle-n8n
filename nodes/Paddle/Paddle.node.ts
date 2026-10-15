@@ -40,6 +40,8 @@ export class Paddle implements INodeType {
 		requestDefaults: {
 			baseURL: BASE_URL_EXPRESSION,
 			headers: PADDLE_HEADERS,
+			// Failed responses are turned into helpful errors by throwOnPaddleError.
+			ignoreHttpStatusErrors: true,
 		},
 		properties: [
 			{

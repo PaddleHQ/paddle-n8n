@@ -7,6 +7,7 @@ import {
 	multiQueryFilter,
 	queryFilter,
 	resourceLocator,
+	sortField,
 } from '../shared/descriptions';
 
 const show = { resource: ['customer'] };
@@ -198,4 +199,5 @@ export const customerDescription: INodeProperties[] = [
 			multiQueryFilter('Status', 'status', 'status', entityStatusOptions),
 		],
 	},
+	sortField(showFor('getAll')),
 ];
