@@ -39,29 +39,10 @@ export class PaddleBillingApi implements ICredentialType {
 					name: 'Sandbox',
 					value: 'sandbox',
 				},
-				{
-					name: 'Custom',
-					value: 'custom',
-					description: 'Another Paddle API host, such as an internal development environment',
-				},
 			],
 			default: 'live',
 			description:
 				'Use Sandbox for testing. API keys are not interchangeable between environments.',
-		},
-		{
-			displayName: 'Base URL',
-			name: 'baseUrl',
-			type: 'string',
-			required: true,
-			default: '',
-			placeholder: 'e.g. https://api.example.com',
-			description: 'Base URL of the Paddle API, without a trailing path',
-			displayOptions: {
-				show: {
-					environment: ['custom'],
-				},
-			},
 		},
 	];
 
@@ -77,7 +58,7 @@ export class PaddleBillingApi implements ICredentialType {
 	test: ICredentialTestRequest = {
 		request: {
 			baseURL:
-				'={{$credentials.environment === "custom" ? String($credentials.baseUrl).replace(/\\/+$/, "") : $credentials.environment === "sandbox" ? "https://sandbox-api.paddle.com" : "https://api.paddle.com"}}',
+				'={{$credentials.environment === "sandbox" ? "https://sandbox-api.paddle.com" : "https://api.paddle.com"}}',
 			url: '/event-types',
 			method: 'GET',
 		},

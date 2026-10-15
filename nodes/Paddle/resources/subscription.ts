@@ -7,7 +7,10 @@ import {
 	multiQueryFilter,
 	queryFilter,
 	resourceLocator,
+	simplifyField,
+	sortField,
 } from '../shared/descriptions';
+import { simplifySubscription } from '../shared/simplify';
 
 const show = { resource: ['subscription'] };
 const showFor = (...operation: string[]) => ({ ...show, operation });
@@ -131,6 +134,9 @@ export const subscriptionDescription: INodeProperties[] = [
 		show: showFor('cancel', 'get', 'pause', 'resume'),
 	}),
 
+	// Get
+	simplifyField(showFor('get'), simplifySubscription),
+
 	// Cancel and Pause
 	{
 		displayName: 'Effective From',
@@ -237,6 +243,7 @@ export const subscriptionDescription: INodeProperties[] = [
 
 	// Get Many
 	...getManyFields(showFor('getAll'), 200),
+	simplifyField(showFor('getAll'), simplifySubscription),
 	{
 		displayName: 'Filters',
 		name: 'filters',
@@ -289,4 +296,5 @@ export const subscriptionDescription: INodeProperties[] = [
 			multiQueryFilter('Status', 'status', 'status', subscriptionStatusOptions),
 		],
 	},
+	sortField(showFor('getAll')),
 ];

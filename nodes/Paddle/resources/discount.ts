@@ -10,7 +10,10 @@ import {
 	multiQueryFilter,
 	queryFilter,
 	resourceLocator,
+	simplifyField,
+	sortField,
 } from '../shared/descriptions';
+import { simplifyDiscount } from '../shared/simplify';
 
 const show = { resource: ['discount'] };
 const showFor = (...operation: string[]) => ({ ...show, operation });
@@ -178,6 +181,9 @@ export const discountDescription: INodeProperties[] = [
 		show: showFor('archive', 'get', 'update'),
 	}),
 
+	// Get
+	simplifyField(showFor('get'), simplifyDiscount),
+
 	// Create
 	{
 		displayName: 'Description',
@@ -271,6 +277,7 @@ export const discountDescription: INodeProperties[] = [
 
 	// Get Many
 	...getManyFields(showFor('getAll'), 200),
+	simplifyField(showFor('getAll'), simplifyDiscount),
 	{
 		displayName: 'Filters',
 		name: 'filters',
@@ -296,4 +303,5 @@ export const discountDescription: INodeProperties[] = [
 			multiQueryFilter('Status', 'status', 'status', entityStatusOptions),
 		],
 	},
+	sortField(showFor('getAll'), [{ name: 'Created At', value: 'created_at' }]),
 ];

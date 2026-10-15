@@ -13,7 +13,7 @@
 	],
 	"author": {
 		"name": "Paddle",
-		"email": "kieran.taylor@paddle.com"
+		"email": "developer-experience@paddle.com"
 	},
 	"repository": {
 		"type": "git",
@@ -30,6 +30,7 @@
 		"release": "n8n-node release",
 		"prepublishOnly": "n8n-node prerelease"
 	},
+	"packageManager": "pnpm@12.4.2",
 	"files": [
 		"dist"
 	],
@@ -45,7 +46,7 @@
 		]
 	},
 	"devDependencies": {
-		"@n8n/node-cli": "*",
+		"@n8n/node-cli": "^0.50.2",
 		"eslint": "9.32.0",
 		"prettier": "3.6.2",
 		"release-it": "^21.1.0",
