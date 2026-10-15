@@ -291,14 +291,15 @@ If your container has a different name, run `docker compose ps` to find it. `--o
 
 From the repo (`~/paddle-n8n`):
 
-| Command           | What it does                                                         |
-| ----------------- | -------------------------------------------------------------------- |
-| `pnpm install`    | Install dependencies                                                 |
-| `pnpm build`      | Compile the nodes into `dist/`                                       |
-| `pnpm dev:docker` | Rebuild on save and reload the nodes in n8n                          |
-| `pnpm lint`       | Run n8n's community node checks, the same ones used for verification |
-| `pnpm lint:fix`   | Fix what the linter can fix automatically                            |
-| `pnpm test`       | Build, then run the unit tests                                       |
+| Command           | What it does                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------- |
+| `pnpm install`    | Install dependencies                                                                  |
+| `pnpm build`      | Compile the nodes into `dist/`                                                        |
+| `pnpm dev:docker` | Rebuild on save and reload the nodes in n8n                                           |
+| `pnpm lint`       | Run n8n's community node checks, the same ones used for verification                  |
+| `pnpm lint:fix`   | Fix what the linter can fix automatically                                             |
+| `pnpm test`       | Build, then run the unit tests                                                        |
+| `pnpm scan`       | Build, then run n8n's community package scan rules on the code and the packed package |
 
 From the n8n folder (`~/n8n`):
 

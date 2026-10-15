@@ -114,7 +114,8 @@ export class PaddleTrigger implements INodeType {
 					{
 						name: '*',
 						value: ALL_EVENTS,
-						description: 'Any time any event is triggered, including event types added later',
+						description:
+							'Every event type Paddle offers when the workflow is activated. Reactivate the workflow to pick up new event types.',
 					},
 					...PADDLE_EVENTS,
 				],
