@@ -1,0 +1,107 @@
+name: Review package
+
+# Run by hand (Actions > Review package > Run workflow) to check the package without
+# releasing anything. It can't publish: it has no npm credentials or id-token permission.
+#
+# - Always: lint, build, test, run n8n's community package scan rules on the source
+#   and the packed tarball, and upload the exact .tgz that would be published.
+# - With a version: also run n8n's full scan on that version from npm, including the
+#   provenance check. This needs the version to be published from a public repo.
+
+on:
+  workflow_dispatch:
+    inputs:
+      published-version:
+        description: 'Optional: also scan this version from npm, e.g. 0.1.0'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: review-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    name: Lint, build, test and scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          use-policy-store: true
+          api-key: ${{ secrets.STEPSECURITY_POLICY_STORE_API_KEY }}
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # Installs the pnpm version pinned in package.json's packageManager field.
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 'lts/*'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: 'pnpm install --frozen-lockfile'
+
+      - name: Run lint
+        run: 'pnpm lint'
+
+      - name: Run tests
+        # Builds first, so dist/ is ready for the scan and pack below.
+        run: 'pnpm test'
+
+      - name: Run n8n community package scan
+        run: 'node scripts/scan-local.mjs'
+
+      - name: Pack the package
+        run: |
+          mkdir -p package
+          pnpm pack --pack-destination package
+          echo '### Files in the package' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tar -tzf package/*.tgz | sort >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: npm-package
+          path: package/*.tgz
+          retention-days: 7
+
+  scan-published:
+    name: Scan published version
+    if: ${{ inputs.published-version != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Harden the runner
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          use-policy-store: true
+          api-key: ${{ secrets.STEPSECURITY_POLICY_STORE_API_KEY }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 'lts/*'
+
+      # The same check n8n runs when reviewing a submission. The CLI reports a failed
+      # scan without a failing exit code, so the output is checked for the pass line.
+      - name: Run n8n's full community package scan
+        env:
+          VERSION: ${{ inputs.published-version }}
+        run: |
+          npx --yes @n8n/scan-community-package@0.39.0 "@paddle/n8n-nodes-paddle@$VERSION" | tee scan.log
+          grep -q 'has passed all security checks' scan.log

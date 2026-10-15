@@ -19,7 +19,8 @@ export class Paddle implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Paddle Billing',
 		name: 'paddle',
-		icon: { light: 'file:../../icons/paddle.svg', dark: 'file:../../icons/paddle.dark.svg' },
+		// The icon has its own background, so one file works on light and dark themes.
+		icon: { light: 'file:../../icons/paddle.svg', dark: 'file:../../icons/paddle.svg' },
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',

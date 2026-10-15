@@ -12,8 +12,8 @@
 		"subscriptions"
 	],
 	"author": {
-		"name": "Paddle",
-		"email": "developer-experience@paddle.com"
+		"name": "paddle.com",
+		"email": "team-dx@paddle.com"
 	},
 	"repository": {
 		"type": "git",
@@ -26,6 +26,7 @@
 		"dev:docker": "n8n-node build && node scripts/dev-docker.mjs",
 		"lint": "n8n-node lint",
 		"lint:fix": "n8n-node lint --fix",
+		"scan": "n8n-node build && node scripts/scan-local.mjs",
 		"test": "n8n-node build && node --test 'test/*.test.js'",
 		"release": "n8n-node release",
 		"prepublishOnly": "n8n-node prerelease"
@@ -47,6 +48,7 @@
 	},
 	"devDependencies": {
 		"@n8n/node-cli": "^0.50.2",
+		"@n8n/scan-community-package": "0.39.0",
 		"eslint": "9.32.0",
 		"prettier": "3.6.2",
 		"release-it": "^21.1.0",
