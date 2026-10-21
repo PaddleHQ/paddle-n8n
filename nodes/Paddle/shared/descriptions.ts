@@ -1,9 +1,11 @@
-import type {
-	IDataObject,
-	IExecuteSingleFunctions,
-	INodeExecutionData,
-	INodeProperties,
-	INodePropertyOptions,
+import {
+	NodeOperationError,
+	type IDataObject,
+	type IExecuteSingleFunctions,
+	type IHttpRequestOptions,
+	type INodeExecutionData,
+	type INodeProperties,
+	type INodePropertyOptions,
 } from 'n8n-workflow';
 import { throwOnPaddleError } from './errors';
 import { paddlePagination } from './pagination';
@@ -76,9 +78,6 @@ export const collectionModeOptions: INodePropertyOptions[] = [
 // Paddle expects RFC 3339 timestamps; n8n date pickers may omit the offset.
 export const DATE_TIME_VALUE = '={{ new Date($value).toISOString() }}';
 
-// Accepts either a JSON string (typed in the editor) or an object (from an expression).
-export const JSON_VALUE = '={{ typeof $value === "string" ? JSON.parse($value) : $value }}';
-
 // Comma-separated list input, sent to Paddle as an array.
 export const LIST_VALUE =
 	'={{ (Array.isArray($value) ? $value : String($value).split(",")).map((v) => String(v).trim()).filter((v) => v) }}';
@@ -129,6 +128,8 @@ export function resourceLocator(options: {
 	};
 }
 
+// Parsing happens in a preSend because an expression that throws is silently dropped by
+// n8n, which would save the record without its custom data.
 export function customDataField(): INodeProperties {
 	return {
 		displayName: 'Custom Data',
@@ -139,9 +140,41 @@ export function customDataField(): INodeProperties {
 			'Your own structured key-value data as a JSON object. Replaces any existing custom data.',
 		routing: {
 			send: {
-				type: 'body',
-				property: 'custom_data',
-				value: JSON_VALUE,
+				preSend: [
+					async function (
+						this: IExecuteSingleFunctions,
+						requestOptions: IHttpRequestOptions,
+					): Promise<IHttpRequestOptions> {
+						const collection =
+							this.getNodeParameter('operation') === 'update' ? 'updateFields' : 'additionalFields';
+						const value = this.getNodeParameter(`${collection}.customData`, '{}');
+						const itemIndex = this.getItemIndex();
+						const fail = (message: string, description: string) =>
+							new NodeOperationError(this.getNode(), `${message} [item ${itemIndex}]`, {
+								description,
+								itemIndex,
+							});
+						let parsed: unknown = value;
+						if (typeof value === 'string') {
+							try {
+								parsed = JSON.parse(value);
+							} catch (error) {
+								throw fail(
+									"'Custom Data' isn't valid JSON",
+									`Enter a JSON object, for example {"plan": "pro"}. ${(error as Error).message}`,
+								);
+							}
+						}
+						if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+							throw fail(
+								"'Custom Data' must be a JSON object",
+								'Paddle stores custom data as key-value pairs, for example {"plan": "pro"}.',
+							);
+						}
+						requestOptions.body = { ...(requestOptions.body as IDataObject), custom_data: parsed };
+						return requestOptions;
+					},
+				],
 			},
 		},
 	};
