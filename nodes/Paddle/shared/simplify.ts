@@ -1,11 +1,29 @@
 import type { IDataObject } from 'n8n-workflow';
 
 // Simplified outputs for the "Simplify" option: at most 10 of the most useful fields
-// per record, with nested values flattened.
+// per record, with nested values flattened, plus any related data the user asked to include.
 
 type Nested = IDataObject | null | undefined;
 
 const nested = (record: IDataObject, key: string) => (record[key] ?? null) as Nested;
+
+// Related data is only present when the user chose it in Include, so it must survive.
+const included = (record: IDataObject, keys: string[]): IDataObject =>
+	Object.fromEntries(
+		keys.filter((key) => record[key] !== undefined).map((key) => [key, record[key]]),
+	);
+
+export const SUBSCRIPTION_INCLUDES = ['next_transaction', 'recurring_transaction_details'];
+
+export const TRANSACTION_INCLUDES = [
+	'address',
+	'adjustments',
+	'adjustments_totals',
+	'available_payment_methods',
+	'business',
+	'customer',
+	'discount',
+];
 
 export function simplifyProduct(product: IDataObject): IDataObject {
 	return {
@@ -19,8 +37,9 @@ export function simplifyProduct(product: IDataObject): IDataObject {
 		status: product.status,
 		created_at: product.created_at,
 		updated_at: product.updated_at,
-		// Only present when the user asked for Include Prices; dropping it would hide them.
-		...(product.prices !== undefined ? { prices: product.prices } : {}),
+		...(product.prices !== undefined
+			? { prices: (product.prices as IDataObject[]).map(simplifyPrice) }
+			: {}),
 	};
 }
 
@@ -70,6 +89,7 @@ export function simplifySubscription(subscription: IDataObject): IDataObject {
 		next_billed_at: subscription.next_billed_at,
 		scheduled_change: nested(subscription, 'scheduled_change')?.action ?? null,
 		price_ids: items.map((item) => item.price?.id).filter(Boolean),
+		...included(subscription, SUBSCRIPTION_INCLUDES),
 	};
 }
 
@@ -86,5 +106,6 @@ export function simplifyTransaction(transaction: IDataObject): IDataObject {
 		origin: transaction.origin,
 		billed_at: transaction.billed_at,
 		created_at: transaction.created_at,
+		...included(transaction, TRANSACTION_INCLUDES),
 	};
 }

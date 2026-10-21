@@ -305,7 +305,7 @@ export function sortField(show: DisplayShow, fields: INodePropertyOptions[] = []
 }
 
 // "Simplify" toggle for Get and Get Many. `simplify` picks at most 10 fields, flattened
-// where possible, from one Paddle record.
+// where possible, from one Paddle record, and keeps any related data chosen in Include.
 export function simplifyField(
 	show: DisplayShow,
 	simplify: (record: IDataObject) => IDataObject,
