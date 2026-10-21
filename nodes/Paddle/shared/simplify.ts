@@ -19,6 +19,8 @@ export function simplifyProduct(product: IDataObject): IDataObject {
 		status: product.status,
 		created_at: product.created_at,
 		updated_at: product.updated_at,
+		// Only present when the user asked for Include Prices; dropping it would hide them.
+		...(product.prices !== undefined ? { prices: product.prices } : {}),
 	};
 }
 

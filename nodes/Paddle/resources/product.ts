@@ -63,7 +63,8 @@ const includePricesOption: INodeProperties = {
 	name: 'includePrices',
 	type: 'boolean',
 	default: false,
-	description: 'Whether to include the prices for each product in the response',
+	description:
+		'Whether to include the prices for each product in the response. They are kept when Simplify is on.',
 	routing: {
 		send: { type: 'query', property: 'include', value: '={{ $value ? "prices" : undefined }}' },
 	},

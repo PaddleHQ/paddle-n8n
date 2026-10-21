@@ -9,6 +9,12 @@ test('every simplified record has at most 10 fields', () => {
 	}
 });
 
+test('keeps included prices on a simplified product', () => {
+	const prices = [{ id: 'pri_1' }];
+	assert.deepStrictEqual(simplify.simplifyProduct({ id: 'pro_1', prices }).prices, prices);
+	assert.ok(!('prices' in simplify.simplifyProduct({ id: 'pro_1' })));
+});
+
 test('flattens nested subscription fields', () => {
 	const result = simplify.simplifySubscription({
 		id: 'sub_1',
