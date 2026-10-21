@@ -39,16 +39,16 @@ test('explains how to fix a missing permission', () => {
 	assert.match(error.description, /permitted to perform this request/);
 });
 
-test('treats a malformed API key as a credential problem, not a permission one', () => {
-	const error = paddleApiError(node, 403, {
-		error: {
-			code: 'authentication_malformed',
-			detail: 'Authentication header included, but incorrectly formatted.',
-		},
-	});
-	assert.strictEqual(error.message, 'Paddle did not accept the API key');
-	assert.match(error.description, /Check the API key in the 'Paddle Billing API' credential/);
-	assert.strictEqual(error.httpCode, '403');
+test('treats a rejected API key as a credential problem, not a permission one', () => {
+	for (const code of ['authentication_malformed', 'authentication_missing', 'invalid_token']) {
+		const error = paddleApiError(node, 403, {
+			error: { code, detail: 'Invalid or revoked API key.' },
+		});
+		assert.strictEqual(error.message, 'Paddle did not accept the API key', code);
+		assert.match(error.description, /Check the API key in the 'Paddle Billing API' credential/);
+		assert.match(error.description, /'Environment' matches/);
+		assert.strictEqual(error.httpCode, '403');
+	}
 });
 
 test('mentions the environment for a forbidden request', () => {
