@@ -28,9 +28,9 @@ test('DATE_TIME_VALUE normalises to an RFC 3339 timestamp', () => {
 		evaluate(DATE_TIME_VALUE, { $value: '2026-01-01T00:00:00Z' }),
 		'2026-01-01T00:00:00.000Z',
 	);
-	assert.match(
-		evaluate(DATE_TIME_VALUE, { $value: '2026-01-01T10:00:00' }),
-		/^2026-01-01T\d\d:00:00\.000Z$/,
+	assert.strictEqual(
+		evaluate(DATE_TIME_VALUE, { $value: '2026-01-01T10:00:00+02:00' }),
+		'2026-01-01T08:00:00.000Z',
 	);
 });
 

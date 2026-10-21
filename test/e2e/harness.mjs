@@ -5,16 +5,25 @@ import { createHmac, randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { API_KEY, FORBIDDEN_KEY, createMockPaddle } from './mock-paddle.mjs';
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const IMAGE = process.env.N8N_IMAGE ?? 'docker.io/n8nio/n8n:2.41.3';
 const CONTAINER = 'paddle-n8n-e2e';
 const PORT = Number(process.env.E2E_N8N_PORT ?? 5678);
-const N8N_URL = `http://localhost:${PORT}`;
+export const N8N_URL = `http://localhost:${PORT}`;
 const NODE_TYPE = '@paddle/n8n-nodes-paddle.paddle';
 const TRIGGER_TYPE = '@paddle/n8n-nodes-paddle.paddleTrigger';
+
+export const rl = (value) => ({ __rl: true, mode: 'id', value });
+
+// The message of an item that failed with "continue on error".
+export const errorOf = (item) => {
+	const e = item.json.error;
+	return typeof e === 'string' ? e : (e?.message ?? JSON.stringify(e));
+};
 
 export const CREDENTIALS = {
 	good: { id: 'e2ecredgood', name: 'Mock sandbox', apiKey: API_KEY },
@@ -54,7 +63,7 @@ export class Harness {
 	}
 
 	async start() {
-		if (!this.sandbox) this.startMock();
+		if (!this.sandbox) await this.startMock();
 		this.buildAndPack();
 		this.startContainer();
 		this.installPackage();
@@ -63,7 +72,9 @@ export class Harness {
 		this.importCredentials();
 	}
 
-	startMock() {
+	// Port 443 is needed because the node's base URL is fixed; on Linux that means
+	// root or CAP_NET_BIND_SERVICE.
+	async startMock() {
 		const certDir = path.join(this.work, 'certs');
 		fs.mkdirSync(certDir);
 		sh('openssl', [
@@ -88,7 +99,12 @@ export class Harness {
 			key: fs.readFileSync(path.join(certDir, 'key.pem')),
 		});
 		this.mock = mock;
-		mock.server.listen(443, '0.0.0.0');
+		await new Promise((resolve, reject) => {
+			mock.server.once('error', (error) =>
+				reject(new Error(`mock Paddle API could not listen on port 443: ${error.message}`)),
+			);
+			mock.server.listen(443, '0.0.0.0', resolve);
+		});
 	}
 
 	buildAndPack() {
@@ -347,12 +363,16 @@ export class Harness {
 		return this.rest('POST', `/workflows/${id}/deactivate`, {});
 	}
 
-	async executionsFor(workflowId) {
-		const { data } = await this.rest(
-			'GET',
-			`/executions?filter=${encodeURIComponent(JSON.stringify({ workflowId }))}`,
-		);
-		return data.results;
+	// Every record of a real sandbox list endpoint, walked page by page.
+	async paddleListAll(route, perPage = 200) {
+		const ids = [];
+		let after = '';
+		for (;;) {
+			const { data, meta } = await this.paddleApi('GET', `${route}?per_page=${perPage}${after}`);
+			ids.push(...data.map((r) => r.id));
+			if (!meta.pagination.has_more || !data.length) return ids;
+			after = `&after=${data[data.length - 1].id}`;
+		}
 	}
 
 	signedPost(destination, secret, payload, { ts = Math.floor(Date.now() / 1000), signature } = {}) {
@@ -371,13 +391,16 @@ export class Harness {
 	}
 
 	async stop() {
-		this.mock?.server.close();
 		if (process.env.E2E_KEEP) {
 			console.log(
-				`E2E_KEEP set: leaving container ${CONTAINER} running on ${N8N_URL} (owner e2e@example.com / E2ePassword123)`,
+				`E2E_KEEP set: leaving container ${CONTAINER} running on ${N8N_URL} (owner e2e@example.com / E2ePassword123)` +
+					(this.mock ? ' and the mock Paddle API listening on port 443; Ctrl+C to stop' : ''),
 			);
+			if (this.mock) await new Promise(() => {});
 			return;
 		}
+		this.mock?.server.closeAllConnections();
+		this.mock?.server.close();
 		spawnSync('docker', ['rm', '-f', CONTAINER], { stdio: 'ignore' });
 		fs.rmSync(this.work, { recursive: true, force: true });
 	}

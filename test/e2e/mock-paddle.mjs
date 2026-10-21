@@ -148,11 +148,7 @@ function list(records, query, cap) {
 	const csv = (v) => String(v).split(',');
 	let rows = [...records];
 	for (const [key, value] of Object.entries(query)) {
-		if (
-			['per_page', 'after', 'order_by', 'include', 'recurring', 'type', 'collection_mode'].includes(
-				key,
-			)
-		)
+		if (['per_page', 'after', 'order_by', 'include', 'recurring', 'collection_mode'].includes(key))
 			continue;
 		if (key === 'search') {
 			const needle = value.toLowerCase();
@@ -198,17 +194,6 @@ export function createMockPaddle({ cert, key }) {
 		const query = Object.fromEntries(url.searchParams);
 		const segments = url.pathname.split('/').filter(Boolean);
 
-		if (segments[0] === '__requests') {
-			if (req.method === 'DELETE') requests.length = 0;
-			return { status: 200, body: requests };
-		}
-		if (segments[0] === '__state') {
-			return {
-				status: 200,
-				body: Object.fromEntries(Object.entries(db).map(([k, m]) => [k, [...m.values()]])),
-			};
-		}
-
 		requests.push({
 			method: req.method,
 			path: url.pathname,
@@ -224,12 +209,13 @@ export function createMockPaddle({ cert, key }) {
 			body,
 		});
 
+		// Paddle answers every authentication failure with 403; the code tells them apart.
 		const auth = req.headers.authorization ?? '';
-		if (auth === `Bearer ${FORBIDDEN_KEY}`)
+		if (auth === `Bearer ${FORBIDDEN_KEY}` || !auth)
 			return error(403, 'forbidden', 'You aren’t permitted to perform this request.');
 		if (auth !== `Bearer ${API_KEY}`)
 			return error(
-				401,
+				403,
 				'authentication_malformed',
 				'Authentication header included, but incorrectly formatted.',
 			);
@@ -248,13 +234,13 @@ export function createMockPaddle({ cert, key }) {
 				return { status: 200, body: list(table.values(), query, PAGE_CAP[collection]) };
 			if (req.method === 'POST') {
 				if (collection === 'customers') {
-					if (body.email === 'invalid')
+					if (body?.email === 'invalid')
 						return error(400, 'invalid_field', 'Invalid request.', {
 							errors: [{ field: 'email', message: 'must be a valid email address' }],
 						});
-					if (body.email === 'rate@limit.example')
+					if (body?.email === 'rate@limit.example')
 						return error(429, 'too_many_requests', 'Too many requests');
-					if (body.email === 'server@error.example')
+					if (body?.email === 'server@error.example')
 						return error(500, 'internal_error', 'Something went wrong');
 				}
 				const record = {
@@ -310,7 +296,12 @@ export function createMockPaddle({ cert, key }) {
 			} catch {
 				body = raw;
 			}
-			const result = handle(req, body);
+			let result;
+			try {
+				result = handle(req, body);
+			} catch (err) {
+				result = error(500, 'mock_error', `mock-paddle crashed: ${err.stack}`);
+			}
 			res.statusCode = result.status;
 			if (result.body === undefined) return res.end();
 			res.setHeader('Content-Type', 'application/json');

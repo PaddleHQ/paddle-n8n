@@ -102,7 +102,7 @@ This uses npm because it runs inside the n8n image, which ships npm. `--omit=pee
 
 With `PADDLE_SANDBOX_API_KEY` set, `node --test test/e2e/sandbox.e2e.test.mjs` runs the same package against the real Paddle sandbox instead: it creates, updates and archives its own records, pages through every transaction, schedules and reverts a pause and a cancel on one active subscription, and creates and deletes a notification destination. Use a key for a sandbox account you don't mind adding test records to.
 
-The suites need Docker and a free port 5678 and take about two minutes each. Set `E2E_KEEP=1` to leave the container running afterwards for a look around (owner `e2e@example.com` / `E2ePassword123`), and `E2E_SKIP_BUILD=1` to reuse the existing `dist/`.
+The suites need Docker, `openssl`, a free port 5678, and permission to listen on port 443 for the mock (on Linux that means root or `CAP_NET_BIND_SERVICE`). They take about two minutes each. Set `E2E_KEEP=1` to leave the container running afterwards for a look around (owner `e2e@example.com` / `E2ePassword123`), and `E2E_SKIP_BUILD=1` to reuse the existing `dist/`.
 
 ## Pull requests
 

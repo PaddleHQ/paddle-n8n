@@ -2,15 +2,18 @@
 // the one change to an existing record, a scheduled pause/cancel, is reverted straight away.
 import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Harness } from './harness.mjs';
+import { errorOf, Harness, rl } from './harness.mjs';
 
 const apiKey = process.env.PADDLE_SANDBOX_API_KEY;
-const rl = (value) => ({ __rl: true, mode: 'id', value });
-const errorOf = (item) => {
-	const e = item.json.error;
-	return typeof e === 'string' ? e : (e?.message ?? JSON.stringify(e));
-};
 const stamp = Date.now().toString(36);
+
+// The ID of the record a Create returned, failing with the node's message if it didn't.
+const createdId = (result, prefix) => {
+	assert.ok(result.items.length, 'the node returned no items');
+	const id = result.json[0].id ?? errorOf(result.items[0]);
+	assert.match(id, prefix);
+	return id;
+};
 
 describe('Paddle sandbox', { skip: !apiKey && 'PADDLE_SANDBOX_API_KEY not set' }, () => {
 	let h;
@@ -39,7 +42,7 @@ describe('Paddle sandbox', { skip: !apiKey && 'PADDLE_SANDBOX_API_KEY not set' }
 				customData: '{"suite":"n8n-e2e"}',
 			},
 		});
-		assert.match(create.json[0].id ?? errorOf(create.items[0]), /^pro_/);
+		createdId(create, /^pro_/);
 		created.products = create.json[0].id;
 		assert.deepEqual(create.json[0].custom_data, { suite: 'n8n-e2e' });
 
@@ -100,7 +103,7 @@ describe('Paddle sandbox', { skip: !apiKey && 'PADDLE_SANDBOX_API_KEY not set' }
 				taxMode: 'account_setting',
 			},
 		});
-		assert.match(create.json[0].id ?? errorOf(create.items[0]), /^pri_/);
+		createdId(create, /^pri_/);
 		created.prices = create.json[0].id;
 		assert.equal(create.json[0].unit_price.amount, '1000');
 		assert.deepEqual(create.json[0].billing_cycle, { frequency: 1, interval: 'month' });
@@ -154,7 +157,7 @@ describe('Paddle sandbox', { skip: !apiKey && 'PADDLE_SANDBOX_API_KEY not set' }
 				enabledForCheckout: true,
 			},
 		});
-		assert.match(create.json[0].id ?? errorOf(create.items[0]), /^dsc_/);
+		createdId(create, /^dsc_/);
 		created.discounts = create.json[0].id;
 		assert.equal(create.json[0].code, code);
 		assert.equal(create.json[0].expires_at, '2027-01-01T00:00:00Z');
@@ -192,7 +195,7 @@ describe('Paddle sandbox', { skip: !apiKey && 'PADDLE_SANDBOX_API_KEY not set' }
 				customData: '{"suite":"n8n-e2e"}',
 			},
 		});
-		assert.match(create.json[0].id ?? errorOf(create.items[0]), /^ctm_/);
+		createdId(create, /^ctm_/);
 		created.customers = create.json[0].id;
 
 		const update = await h.execute('sb customer update', {
@@ -251,7 +254,7 @@ describe('Paddle sandbox', { skip: !apiKey && 'PADDLE_SANDBOX_API_KEY not set' }
 				customData: '{"suite":"n8n-e2e"}',
 			},
 		});
-		assert.match(create.json[0].id ?? errorOf(create.items[0]), /^txn_/);
+		createdId(create, /^txn_/);
 		const txn = create.json[0].id;
 		assert.equal(create.json[0].customer_id, created.customers);
 
@@ -276,36 +279,33 @@ describe('Paddle sandbox', { skip: !apiKey && 'PADDLE_SANDBOX_API_KEY not set' }
 			[txn],
 		);
 
-		const total = (await h.paddleApi('GET', '/transactions?per_page=1')).meta.pagination
-			.estimated_total;
+		const expected = await h.paddleListAll('/transactions', 30);
 		const all = await h.execute('sb transaction return all', {
 			resource: 'transaction',
 			operation: 'getAll',
 			returnAll: true,
 		});
-		assert.equal(all.json.length, total);
-		assert.equal(new Set(all.json.map((t) => t.id)).size, total, 'no duplicates across pages');
+		assert.deepEqual(all.json.map((t) => t.id).sort(), [...expected].sort());
 
 		const limited = await h.execute('sb transaction limit 45', {
 			resource: 'transaction',
 			operation: 'getAll',
 			limit: 45,
 		});
-		assert.equal(limited.json.length, Math.min(45, total));
+		assert.equal(limited.json.length, Math.min(45, expected.length));
 	});
 
-	test('Subscription: list, get with include, scheduled pause and cancel (reverted), resume error', async () => {
+	test('Subscription: list, get with include, scheduled pause and cancel (reverted), resume error', async (t) => {
 		const all = await h.execute('sb subscription list', {
 			resource: 'subscription',
 			operation: 'getAll',
 			returnAll: true,
 		});
-		const total = (await h.paddleApi('GET', '/subscriptions?per_page=1')).meta.pagination
-			.estimated_total;
-		assert.equal(all.json.length, total);
+		const expected = await h.paddleListAll('/subscriptions');
+		assert.deepEqual(all.json.map((s) => s.id).sort(), [...expected].sort());
 		const candidate = all.json.find((s) => s.status === 'active' && s.scheduled_change === null);
 		if (!candidate) {
-			console.log('    no active subscription without a scheduled change; skipping pause/cancel');
+			t.skip('no active subscription without a scheduled change in this sandbox');
 			return;
 		}
 

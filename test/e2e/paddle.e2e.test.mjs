@@ -3,13 +3,8 @@
 import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EVENT_TYPES } from './mock-paddle.mjs';
-import { Harness } from './harness.mjs';
+import { errorOf, Harness, N8N_URL, rl } from './harness.mjs';
 
-const rl = (value) => ({ __rl: true, mode: 'id', value });
-const errorOf = (item) => {
-	const e = item.json.error;
-	return typeof e === 'string' ? e : (e?.message ?? JSON.stringify(e));
-};
 const SIMPLIFIED_PRODUCT_KEYS = [
 	'id',
 	'name',
@@ -204,13 +199,14 @@ describe('Errors', () => {
 		assert.match(errorOf(r.items[0]), /The API key doesn't have permission for this action/);
 	});
 
-	test('401 points at the credential', async () => {
+	test('a rejected API key is reported as an API key problem', async () => {
 		const r = await h.execute(
-			'error 401',
+			'error bad key',
 			{ resource: 'customer', operation: 'get', customerId: rl('ctm_01e2e000001') },
 			{ credential: 'wrong' },
 		);
-		assert.match(errorOf(r.items[0]), /Paddle did not accept the API key/);
+		// Paddle sends 403 authentication_malformed; the exact wording is the node's call.
+		assert.match(errorOf(r.items[0]), /API key/);
 	});
 
 	test('429 and 5xx get their own messages', async () => {
@@ -285,12 +281,12 @@ describe('Product', () => {
 			resource: 'product',
 			operation: 'getAll',
 			limit: 3,
-			filters: { taxCategory: ['saas', 'standard'], type: 'custom', includePrices: true },
+			filters: { taxCategory: ['saas', 'standard'], type: 'standard', includePrices: true },
 			sort: { field: 'name', direction: 'ASC' },
 		});
 		assert.equal(r.requests[0].query.order_by, 'name[ASC]');
 		assert.equal(r.requests[0].query.tax_category, 'saas,standard');
-		assert.equal(r.requests[0].query.type, 'custom');
+		assert.equal(r.requests[0].query.type, 'standard');
 		assert.equal(r.requests[0].query.include, 'prices');
 		assert.deepEqual(
 			r.json.map((p) => p.name),
@@ -655,7 +651,7 @@ describe('Paddle Billing Trigger', () => {
 		assert.deepEqual(calls, ['GET /notification-settings', 'POST /notification-settings']);
 		const created = h.mock.requests[1].body;
 		assert.equal(created.description, 'n8n: trigger basic');
-		assert.match(created.destination, /^http:\/\/localhost:5678\/webhook\/.+/);
+		assert.ok(created.destination.startsWith(`${N8N_URL}/webhook/`), created.destination);
 		assert.equal(created.type, 'url');
 		assert.equal(created.api_version, 1);
 		assert.deepEqual(created.subscribed_events, ['customer.created', 'subscription.canceled']);
@@ -667,6 +663,7 @@ describe('Paddle Billing Trigger', () => {
 	});
 
 	test('a correctly signed event runs the workflow with the payload', async () => {
+		assert.ok(setting, 'needs the destination from the activation test');
 		h.mock.requests.length = 0;
 		const res = await h.signedPost(setting.destination, setting.endpoint_secret_key, {
 			event_id: 'evt_01e2e',
@@ -683,6 +680,7 @@ describe('Paddle Billing Trigger', () => {
 	});
 
 	test('invalid, stale or missing signatures are rejected with 401', async () => {
+		assert.ok(setting, 'needs the destination from the activation test');
 		h.mock.requests.length = 0;
 		const payload = { event_type: 'customer.created', data: { id: 'ctm_01e2e000008' } };
 		const bad = await h.signedPost(setting.destination, setting.endpoint_secret_key, payload, {
@@ -696,7 +694,7 @@ describe('Paddle Billing Trigger', () => {
 		assert.equal(stale.status, 401);
 		const wrongSecret = await h.signedPost(setting.destination, 'pdl_ntfset_other', payload);
 		assert.equal(wrongSecret.status, 401);
-		const missing = await fetch(setting.destination, {
+		const missing = await fetch(setting.destination.replace(/^https?:\/\/[^/]+/, N8N_URL), {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(payload),
@@ -710,6 +708,7 @@ describe('Paddle Billing Trigger', () => {
 	});
 
 	test('deactivating deletes the notification destination', async () => {
+		assert.ok(setting, 'needs the destination from the activation test');
 		h.mock.requests.length = 0;
 		await h.deactivate(workflowId);
 		assert.ok(
