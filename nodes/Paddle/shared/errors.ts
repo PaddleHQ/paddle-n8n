@@ -29,7 +29,7 @@ const STATUS_MESSAGES: Record<number, { message: string; description: string }> 
 	403: {
 		message: "The API key doesn't have permission for this action",
 		description:
-			'In Paddle, go to Developer Tools > Authentication and give the key permission for this resource.',
+			"In Paddle, go to Developer Tools > Authentication and give the key permission for this resource. If it already has it, check that the credential's 'Environment' matches the environment the key was created in.",
 	},
 	404: {
 		message: "Paddle couldn't find the requested record",
@@ -71,7 +71,9 @@ export function paddleApiError(
 ): NodeApiError {
 	const paddle = ((body ?? {}) as PaddleErrorBody).error ?? {};
 	const fieldErrors = (paddle.errors ?? []).filter((e) => e.field);
-	const known = STATUS_MESSAGES[statusCode] ?? (statusCode >= 500 ? SERVER_MESSAGE : undefined);
+	// Paddle answers a malformed or unknown key with 403, not 401.
+	const status = paddle.code === 'authentication_malformed' ? 401 : statusCode;
+	const known = STATUS_MESSAGES[status] ?? (statusCode >= 500 ? SERVER_MESSAGE : undefined);
 
 	let message: string;
 	const details: string[] = [];
@@ -81,7 +83,10 @@ export function paddleApiError(
 		message = `Paddle rejected the value of ${labels.join(', ')}`;
 		details.push(...fieldErrors.map((e) => `'${fieldLabel(e.field as string)}': ${e.message}`));
 	} else {
-		message = known?.message ?? paddle.detail ?? `Paddle returned status ${statusCode}`;
+		// A conflict's cause is only in Paddle's detail, e.g. which customer has the email.
+		const preferDetail = statusCode === 409 && paddle.detail;
+		message =
+			preferDetail || known?.message || paddle.detail || `Paddle returned status ${statusCode}`;
 		if (paddle.detail && paddle.detail !== message) details.push(paddle.detail);
 	}
 
