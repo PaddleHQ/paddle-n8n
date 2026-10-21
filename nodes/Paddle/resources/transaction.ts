@@ -1,6 +1,7 @@
 import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
 import {
 	collectionModeOptions,
+	CSV_QUERY_VALUE,
 	currencyOptions,
 	customDataField,
 	dataRootProperty,
@@ -43,7 +44,7 @@ const includeField: INodeProperties = {
 	options: includeOptions,
 	default: [],
 	description: 'Related entities to include in the response',
-	routing: { send: { type: 'query', property: 'include', value: '={{ $value.join(",") }}' } },
+	routing: { send: { type: 'query', property: 'include', value: CSV_QUERY_VALUE } },
 };
 
 const idField = (displayName: string, name: string, property: string, example: string) =>

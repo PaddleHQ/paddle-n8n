@@ -1,6 +1,7 @@
 import type { INodeProperties, INodePropertyOptions } from 'n8n-workflow';
 import {
 	collectionModeOptions,
+	CSV_QUERY_VALUE,
 	dataRootProperty,
 	DATE_TIME_VALUE,
 	getManyFields,
@@ -236,7 +237,7 @@ export const subscriptionDescription: INodeProperties[] = [
 				],
 				default: [],
 				description: 'Related data to include in the response',
-				routing: { send: { type: 'query', property: 'include', value: '={{ $value.join(",") }}' } },
+				routing: { send: { type: 'query', property: 'include', value: CSV_QUERY_VALUE } },
 			},
 		],
 	},

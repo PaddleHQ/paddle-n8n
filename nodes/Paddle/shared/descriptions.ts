@@ -73,8 +73,14 @@ export const collectionModeOptions: INodePropertyOptions[] = [
 	{ name: 'Manual', value: 'manual', description: 'Paddle sends an invoice to be paid' },
 ];
 
-// Paddle expects RFC 3339 timestamps; n8n date pickers may omit the offset.
-export const DATE_TIME_VALUE = '={{ new Date($value).toISOString() }}';
+// Paddle expects RFC 3339 timestamps. A value without an offset is taken as UTC, so the
+// result doesn't depend on the timezone of the machine running n8n.
+export const DATE_TIME_VALUE =
+	'={{ new Date(typeof $value === "string" && !/^\\d{4}-\\d\\d-\\d\\d$|[zZ]$|[+-]\\d\\d:?\\d\\d$/.test($value) ? $value + "Z" : $value).toISOString() }}';
+
+// Comma-separated query values; an empty value is left out of the request entirely.
+export const CSV_QUERY_VALUE =
+	'={{ (Array.isArray($value) ? $value : String($value).split(",")).map((v) => String(v).trim()).filter((v) => v).join(",") || undefined }}';
 
 // Accepts either a JSON string (typed in the editor) or an object (from an expression).
 export const JSON_VALUE = '={{ typeof $value === "string" ? JSON.parse($value) : $value }}';
@@ -213,7 +219,7 @@ export function multiQueryFilter(
 			send: {
 				type: 'query',
 				property: query,
-				value: '={{ $value.join(",") }}',
+				value: CSV_QUERY_VALUE,
 			},
 		},
 	};
@@ -237,8 +243,7 @@ export function queryFilter(
 			send: {
 				type: 'query',
 				property: query,
-				// Paddle takes comma-separated lists; drop whitespace around the commas.
-				value: '={{ String($value).split(",").map((v) => v.trim()).filter((v) => v).join(",") }}',
+				value: CSV_QUERY_VALUE,
 			},
 		},
 	};
