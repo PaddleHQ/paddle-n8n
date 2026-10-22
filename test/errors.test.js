@@ -39,6 +39,39 @@ test('explains how to fix a missing permission', () => {
 	assert.match(error.description, /permitted to perform this request/);
 });
 
+test('treats a rejected API key as a credential problem, not a permission one', () => {
+	for (const code of ['authentication_malformed', 'authentication_missing', 'invalid_token']) {
+		const error = paddleApiError(node, 403, {
+			error: { code, detail: 'Invalid or revoked API key.' },
+		});
+		assert.strictEqual(error.message, 'Paddle did not accept the API key', code);
+		assert.match(error.description, /Check the API key in the 'Paddle Billing API' credential/);
+		assert.match(error.description, /'Environment' matches/);
+		assert.strictEqual(error.httpCode, '403');
+	}
+});
+
+test('mentions the environment for a forbidden request', () => {
+	const error = paddleApiError(node, 403, { error: { code: 'forbidden' } });
+	assert.strictEqual(error.message, "The API key doesn't have permission for this action");
+	assert.match(error.description, /'Environment' matches/);
+});
+
+test("uses Paddle's explanation as the headline for a conflict", () => {
+	const error = paddleApiError(node, 409, {
+		error: {
+			code: 'customer_already_exists',
+			detail: 'customer email conflicts with customer of id ctm_123',
+		},
+	});
+	assert.strictEqual(error.message, 'customer email conflicts with customer of id ctm_123');
+	assert.match(error.description, /Check the record in Paddle/);
+	assert.strictEqual(
+		paddleApiError(node, 409, {}).message,
+		"The record's current state doesn't allow this change",
+	);
+});
+
 test("uses Paddle's detail for statuses without a known message", () => {
 	const error = paddleApiError(node, 400, {
 		error: { code: 'subscription_locked', detail: 'Subscription is locked' },
