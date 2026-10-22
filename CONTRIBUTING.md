@@ -17,6 +17,7 @@ Thanks for helping improve the Paddle Billing nodes for n8n. This guide covers w
 | `pnpm build`      | Compile to `dist/` and copy icons and `.node.json` files                                                                    |
 | `pnpm lint`       | Run n8n's community node lint rules, the checks used for verification. `pnpm lint:fix` fixes what it can.                   |
 | `pnpm test`       | Build, then run the unit tests in `test/`                                                                                   |
+| `pnpm test:e2e`   | Run the packaged nodes inside the n8n Docker image against a mock Paddle API (see [End-to-end tests](#end-to-end-tests))    |
 | `pnpm scan`       | Build, then run the rules from n8n's community package scan on the source and the packed package                            |
 | `pnpm dev:docker` | Rebuild on save and reload the nodes in a running n8n (see [Running locally with Docker](#running-locally-with-docker))     |
 | `pnpm dev`        | Alternative: start a separate n8n with the nodes loaded, using n8n's CLI. It also uses port 5678, so stop Docker n8n first. |
@@ -95,8 +96,16 @@ docker restart <container>
 
 This uses npm because it runs inside the n8n image, which ships npm. `--omit=peer` stops it installing `n8n-workflow`: n8n already provides it, and installing it again pulls in native modules that need a compiler. Remove the repo mount first, or n8n will load the nodes twice.
 
+## End-to-end tests
+
+`pnpm test:e2e` builds and packs the package, installs it in a fresh `n8nio/n8n` container the way a user would, and runs workflows through n8n's CLI and REST API. Paddle is replaced by `test/e2e/mock-paddle.mjs`, an in-memory API served over HTTPS on port 443 that the container reaches as `sandbox-api.paddle.com`, so the node's real base URL, credential and routing run unchanged. Every operation, filter, pagination path, error message and the trigger's activation, signature check and deactivation are covered.
+
+With `PADDLE_SANDBOX_API_KEY` set, `node --test test/e2e/sandbox.e2e.test.mjs` runs the same package against the real Paddle sandbox instead: it creates, updates and archives its own records, pages through every transaction, schedules and reverts a pause and a cancel on one active subscription, and creates and deletes a notification destination. Use a key for a sandbox account you don't mind adding test records to.
+
+The suites need Docker, `openssl`, a free port 5678, and permission to listen on port 443 for the mock (on Linux that means root or `CAP_NET_BIND_SERVICE`). They take about two minutes each. Set `E2E_KEEP=1` to leave the container running afterwards for a look around (owner `e2e@example.com` / `E2ePassword123`), and `E2E_SKIP_BUILD=1` to reuse the existing `dist/`.
+
 ## Pull requests
 
-- Run `pnpm lint`, `pnpm test` and `pnpm scan` before opening a pull request. CI runs the same checks.
+- Run `pnpm lint`, `pnpm test` and `pnpm scan` before opening a pull request. CI runs the same checks. Run `pnpm test:e2e` for changes to routing, pagination, errors or the trigger.
 - Add a line to [CHANGELOG.md](CHANGELOG.md) for changes users will notice.
 - Don't change the published version or create tags in a pull request. Releases are made by the maintainers.
