@@ -2,10 +2,44 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const simplify = require('../dist/nodes/Paddle/shared/simplify');
 const { sortField } = require('../dist/nodes/Paddle/shared/descriptions');
+const { subscriptionDescription } = require('../dist/nodes/Paddle/resources/subscription');
+const { transactionDescription } = require('../dist/nodes/Paddle/resources/transaction');
 
-test('every simplified record has at most 10 fields', () => {
-	for (const fn of Object.values(simplify)) {
+const simplifiers = Object.values(simplify).filter((v) => typeof v === 'function');
+
+test('every simplified record has at most 10 fields when nothing was included', () => {
+	for (const fn of simplifiers) {
 		assert.ok(Object.keys(fn({})).length <= 10, fn.name);
+	}
+});
+
+test('keeps included prices on a simplified product, simplified like a price', () => {
+	const prices = [{ id: 'pri_1', unit_price: { amount: '100', currency_code: 'USD' } }];
+	const product = simplify.simplifyProduct({ id: 'pro_1', prices });
+	assert.deepStrictEqual(
+		product.prices.map((p) => [p.id, p.amount]),
+		[['pri_1', '100']],
+	);
+	assert.ok(!('prices' in simplify.simplifyProduct({ id: 'pro_1' })));
+});
+
+test('keeps every includable relation on subscriptions and transactions', () => {
+	const includeValues = (description) =>
+		description
+			.find((p) => p.name === 'getOptions')
+			.options.find((o) => o.name === 'include')
+			.options.map((o) => o.value);
+
+	for (const [description, fn, known] of [
+		[subscriptionDescription, simplify.simplifySubscription, simplify.SUBSCRIPTION_INCLUDES],
+		[transactionDescription, simplify.simplifyTransaction, simplify.TRANSACTION_INCLUDES],
+	]) {
+		const keys = includeValues(description);
+		assert.deepStrictEqual([...keys].sort(), [...known].sort());
+		const record = Object.fromEntries(keys.map((key) => [key, { via: key }]));
+		const simplified = fn({ id: 'x', ...record });
+		for (const key of keys) assert.deepStrictEqual(simplified[key], { via: key });
+		assert.ok(keys.every((key) => !(key in fn({ id: 'x' }))));
 	}
 });
 
