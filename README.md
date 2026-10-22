@@ -80,7 +80,7 @@ API keys only work in their own environment. If you use both, create a credentia
 
 - **Get Many** supports Paddle's filters, such as status or IDs, plus **Return All** or a **Limit**.
 - **Sort** orders Get Many results by ID or, where Paddle supports it, by another field such as name or creation date. Without it, Paddle returns the newest records first.
-- **Simplify** is on by default for products, prices, discounts, subscriptions and transactions. It returns up to 10 key fields with nested values flattened, for example `amount` and `currency_code` instead of `unit_price`. Turn it off to get Paddle's full response.
+- **Simplify** is on by default for products, prices, discounts, subscriptions and transactions. It returns up to 10 key fields with nested values flattened, for example `amount` and `currency_code` instead of `unit_price`, plus any related data you chose in **Include**. Turn it off to get Paddle's full response.
 
 **Subscriptions**
 
