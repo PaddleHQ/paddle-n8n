@@ -62,3 +62,21 @@ test('postReceive passes successful responses through and throws on failures', a
 		/Paddle did not accept the API key \[item 0\]/,
 	);
 });
+
+test("uses Paddle's explanation as the headline for a 409", () => {
+	const error = paddleApiError(node, 409, {
+		error: {
+			code: 'customer_already_exists',
+			detail: 'customer email conflicts with customer of id ctm_01abc',
+		},
+	});
+	assert.strictEqual(error.message, 'customer email conflicts with customer of id ctm_01abc');
+	assert.match(error.description, /Check the record in Paddle/);
+});
+
+test('passes on how long Paddle asks to wait after a rate limit', () => {
+	const error = paddleApiError(node, 429, {}, 0, { 'retry-after': '30' });
+	assert.strictEqual(error.context.retryAfterSeconds, 30);
+	assert.match(error.description, /wait 30 seconds/);
+	assert.match(error.description, /Retry On Fail/);
+});

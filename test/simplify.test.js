@@ -44,3 +44,19 @@ test('sort sends order_by and lists ID with the given fields', () => {
 	);
 	assert.strictEqual(sortField({ resource: ['customer'] }).options.length, 1);
 });
+
+test('sort defaults to newest first, matching Paddle', () => {
+	const [direction, field] = sortField({ resource: ['product'] }, [
+		{ name: 'Name', value: 'name' },
+	]).options;
+	assert.strictEqual(direction.default, 'DESC');
+	assert.match(field.routing.send.value, /\|\| "DESC"/);
+});
+
+test('blank optional dates are left out instead of failing', () => {
+	const { DATE_TIME_VALUE } = require('../dist/nodes/Paddle/shared/descriptions');
+	const expression = DATE_TIME_VALUE.slice(4, -3);
+	const evaluate = new Function('$value', `return ${expression}`);
+	assert.strictEqual(evaluate(''), undefined);
+	assert.strictEqual(evaluate('2026-01-02T03:04:05Z'), '2026-01-02T03:04:05.000Z');
+});

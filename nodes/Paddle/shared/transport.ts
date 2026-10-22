@@ -68,7 +68,13 @@ export async function paddleApiRequest(
 	)) as IN8nHttpFullResponse;
 
 	if (response.statusCode >= 400) {
-		throw paddleApiError(this.getNode(), response.statusCode, response.body);
+		throw paddleApiError(
+			this.getNode(),
+			response.statusCode,
+			response.body,
+			undefined,
+			response.headers,
+		);
 	}
 	return response.body as IDataObject;
 }

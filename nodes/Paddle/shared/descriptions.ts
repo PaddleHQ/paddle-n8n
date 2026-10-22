@@ -73,8 +73,9 @@ export const collectionModeOptions: INodePropertyOptions[] = [
 	{ name: 'Manual', value: 'manual', description: 'Paddle sends an invoice to be paid' },
 ];
 
-// Paddle expects RFC 3339 timestamps; n8n date pickers may omit the offset.
-export const DATE_TIME_VALUE = '={{ new Date($value).toISOString() }}';
+// Paddle expects RFC 3339 timestamps; n8n date pickers may omit the offset. A blank
+// optional date is left out of the request instead of failing with "Invalid time value".
+export const DATE_TIME_VALUE = '={{ $value ? new Date($value).toISOString() : undefined }}';
 
 // Accepts either a JSON string (typed in the editor) or an object (from an expression).
 export const JSON_VALUE = '={{ typeof $value === "string" ? JSON.parse($value) : $value }}';
@@ -259,7 +260,7 @@ export const dataRootProperty = {
 // `fields` lists the endpoint's sortable fields other than ID; Paddle can always sort by ID.
 export function sortField(show: DisplayShow, fields: INodePropertyOptions[] = []): INodeProperties {
 	const orderBy =
-		'={{ ($parameter.sort.field || "id") + "[" + ($parameter.sort.direction || "ASC") + "]" }}';
+		'={{ ($parameter.sort.field || "id") + "[" + ($parameter.sort.direction || "DESC") + "]" }}';
 	const send = { type: 'query' as const, property: 'order_by', value: orderBy };
 
 	const options: INodeProperties[] = [
@@ -271,7 +272,7 @@ export function sortField(show: DisplayShow, fields: INodePropertyOptions[] = []
 				{ name: 'Ascending', value: 'ASC' },
 				{ name: 'Descending', value: 'DESC' },
 			],
-			default: 'ASC',
+			default: 'DESC',
 			description: fields.length
 				? 'Order of the results'
 				: 'Order of the results by ID. Paddle IDs increase over time, so Descending returns the newest first.',

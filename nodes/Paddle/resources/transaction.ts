@@ -5,6 +5,7 @@ import {
 	customDataField,
 	dataRootProperty,
 	getManyFields,
+	intervalOptions,
 	multiQueryFilter,
 	queryFilter,
 	resourceLocator,
@@ -161,6 +162,69 @@ export const transactionDescription: INodeProperties[] = [
 		displayOptions: { show: showFor('create') },
 		options: [
 			idField('Address ID', 'addressId', 'address_id', 'add_01gm302t81w94gyjpjpqypkzkf'),
+			{
+				displayName: 'Billing Details',
+				name: 'billingDetails',
+				type: 'fixedCollection',
+				default: {},
+				placeholder: 'Add Billing Details',
+				description:
+					"Invoicing details. Required when 'Collection Mode' is Manual, and ignored otherwise.",
+				options: [
+					{
+						displayName: 'Details',
+						name: 'details',
+						values: [
+							{
+								displayName: 'Additional Information',
+								name: 'additionalInformation',
+								type: 'string',
+								default: '',
+								description: 'Notes to show on the invoice',
+							},
+							{
+								displayName: 'Enable Checkout',
+								name: 'enableCheckout',
+								type: 'boolean',
+								default: false,
+								description:
+									'Whether the customer can pay the invoice by card or other methods through a Paddle checkout link',
+							},
+							{
+								displayName: 'Payment Terms Frequency',
+								name: 'paymentTermsFrequency',
+								type: 'number',
+								typeOptions: { minValue: 1 },
+								default: 14,
+								description: 'Number of intervals the customer has to pay, e.g. 14 days',
+							},
+							{
+								displayName: 'Payment Terms Interval',
+								name: 'paymentTermsInterval',
+								type: 'options',
+								options: intervalOptions,
+								default: 'day',
+								description: 'Unit for the payment terms',
+							},
+							{
+								displayName: 'Purchase Order Number',
+								name: 'purchaseOrderNumber',
+								type: 'string',
+								default: '',
+								description: "The customer's purchase order number, shown on the invoice",
+							},
+						],
+					},
+				],
+				routing: {
+					send: {
+						type: 'body',
+						property: 'billing_details',
+						value:
+							'={{ $value.details ? { enable_checkout: $value.details.enableCheckout ?? false, payment_terms: { interval: $value.details.paymentTermsInterval ?? "day", frequency: $value.details.paymentTermsFrequency ?? 14 }, purchase_order_number: $value.details.purchaseOrderNumber || undefined, additional_information: $value.details.additionalInformation || undefined } : undefined }}',
+					},
+				},
+			},
 			idField('Business ID', 'businessId', 'business_id', 'biz_01gm302t81w94gyjpjpqypkzkf'),
 			{
 				displayName: 'Collection Mode',
@@ -169,7 +233,7 @@ export const transactionDescription: INodeProperties[] = [
 				options: collectionModeOptions,
 				default: 'automatic',
 				description:
-					'How payment is collected. Manual transactions need a customer, address and billing details.',
+					"How payment is collected. Manual transactions need a customer, address and 'Billing Details'.",
 				routing: { send: { type: 'body', property: 'collection_mode' } },
 			},
 			{
