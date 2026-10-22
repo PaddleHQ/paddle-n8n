@@ -73,8 +73,11 @@ export const collectionModeOptions: INodePropertyOptions[] = [
 	{ name: 'Manual', value: 'manual', description: 'Paddle sends an invoice to be paid' },
 ];
 
-// Paddle expects RFC 3339 timestamps; n8n date pickers may omit the offset.
-export const DATE_TIME_VALUE = '={{ new Date($value).toISOString() }}';
+// Paddle expects RFC 3339 timestamps. An ISO value without an offset is taken as UTC, so
+// the result doesn't depend on the timezone of the machine running n8n. An empty value is
+// left out of the request.
+export const DATE_TIME_VALUE =
+	'={{ $value ? new Date(/^\\d{4}-\\d\\d-\\d\\d[T ]\\d\\d:\\d\\d(:\\d\\d(\\.\\d+)?)?$/.test(String($value)) ? String($value) + "Z" : $value).toISOString() : undefined }}';
 
 // An optional text field that was added but left blank is left out, as Paddle rejects "".
 export const TEXT_VALUE = '={{ String($value).trim() ? $value : undefined }}';
@@ -82,9 +85,15 @@ export const TEXT_VALUE = '={{ String($value).trim() ? $value : undefined }}';
 // Accepts either a JSON string (typed in the editor) or an object (from an expression).
 export const JSON_VALUE = '={{ typeof $value === "string" ? JSON.parse($value) : $value }}';
 
-// Comma-separated list input, sent to Paddle as an array.
-export const LIST_VALUE =
-	'={{ (Array.isArray($value) ? $value : String($value).split(",")).map((v) => String(v).trim()).filter((v) => v) }}';
+// Comma-separated or array input, normalised to a trimmed list of non-empty strings.
+const LIST_EXPR =
+	'($value == null ? [] : Array.isArray($value) ? $value : String($value).split(",")).map((v) => String(v).trim()).filter((v) => v)';
+
+// Sent to Paddle as an array.
+export const LIST_VALUE = `={{ ${LIST_EXPR} }}`;
+
+// Comma-separated query value; an empty value is left out of the request entirely.
+export const CSV_QUERY_VALUE = `={{ ${LIST_EXPR}.join(",") || undefined }}`;
 
 export function resourceLocator(options: {
 	displayName: string;
@@ -216,7 +225,7 @@ export function multiQueryFilter(
 			send: {
 				type: 'query',
 				property: query,
-				value: '={{ $value.join(",") }}',
+				value: CSV_QUERY_VALUE,
 			},
 		},
 	};
@@ -240,8 +249,7 @@ export function queryFilter(
 			send: {
 				type: 'query',
 				property: query,
-				// Paddle takes comma-separated lists; drop whitespace around the commas.
-				value: '={{ String($value).split(",").map((v) => v.trim()).filter((v) => v).join(",") }}',
+				value: CSV_QUERY_VALUE,
 			},
 		},
 	};
@@ -308,7 +316,7 @@ export function sortField(show: DisplayShow, fields: INodePropertyOptions[] = []
 }
 
 // "Simplify" toggle for Get and Get Many. `simplify` picks at most 10 fields, flattened
-// where possible, from one Paddle record.
+// where possible, from one Paddle record, and keeps any related data chosen in Include.
 export function simplifyField(
 	show: DisplayShow,
 	simplify: (record: IDataObject) => IDataObject,

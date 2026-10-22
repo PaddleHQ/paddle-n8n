@@ -175,15 +175,13 @@ export const customerDescription: INodeProperties[] = [
 		default: {},
 		displayOptions: { show: showFor('getAll') },
 		options: [
-			{
-				displayName: 'Email',
-				name: 'email',
-				type: 'string',
-				placeholder: 'name@email.com',
-				default: '',
-				description: 'Return customers with these exact email addresses (comma-separated)',
-				routing: { send: { type: 'query', property: 'email' } },
-			},
+			queryFilter(
+				'Email',
+				'email',
+				'email',
+				'Return customers with these exact email addresses (comma-separated)',
+				'name@email.com',
+			),
 			queryFilter(
 				'IDs',
 				'ids',
