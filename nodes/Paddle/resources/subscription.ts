@@ -145,7 +145,8 @@ export const subscriptionDescription: INodeProperties[] = [
 		options: effectiveFromOptions,
 		default: 'next_billing_period',
 		displayOptions: { show: showFor('cancel', 'pause') },
-		description: 'When the change takes effect',
+		description:
+			'When the change takes effect. Paused subscriptions can only be canceled immediately.',
 		routing: { send: { type: 'body', property: 'effective_from' } },
 	},
 	{

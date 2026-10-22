@@ -76,6 +76,9 @@ export const collectionModeOptions: INodePropertyOptions[] = [
 // Paddle expects RFC 3339 timestamps; n8n date pickers may omit the offset.
 export const DATE_TIME_VALUE = '={{ new Date($value).toISOString() }}';
 
+// An optional text field that was added but left blank is left out, as Paddle rejects "".
+export const TEXT_VALUE = '={{ String($value).trim() ? $value : undefined }}';
+
 // Accepts either a JSON string (typed in the editor) or an object (from an expression).
 export const JSON_VALUE = '={{ typeof $value === "string" ? JSON.parse($value) : $value }}';
 
