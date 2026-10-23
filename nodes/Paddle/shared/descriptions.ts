@@ -1,9 +1,11 @@
-import type {
-	IDataObject,
-	IExecuteSingleFunctions,
-	INodeExecutionData,
-	INodeProperties,
-	INodePropertyOptions,
+import {
+	NodeOperationError,
+	type IDataObject,
+	type IExecuteSingleFunctions,
+	type IHttpRequestOptions,
+	type INodeExecutionData,
+	type INodeProperties,
+	type INodePropertyOptions,
 } from 'n8n-workflow';
 import { throwOnPaddleError } from './errors';
 import { paddlePagination } from './pagination';
@@ -141,6 +143,47 @@ export function resourceLocator(options: {
 	};
 }
 
+// Parsed in a preSend rather than an expression: an expression that throws is silently
+// dropped by n8n, which would save the record without its custom data.
+async function parseCustomData(
+	this: IExecuteSingleFunctions,
+	requestOptions: IHttpRequestOptions,
+): Promise<IHttpRequestOptions> {
+	const body = (requestOptions.body ?? {}) as IDataObject;
+	const raw = body.custom_data;
+	const itemIndex = this.getItemIndex();
+	const fail = (message: string, description: string) =>
+		new NodeOperationError(this.getNode(), `${message} [item ${itemIndex}]`, {
+			description,
+			itemIndex,
+		});
+
+	let value: unknown = raw;
+	if (typeof raw === 'string') {
+		if (!raw.trim()) {
+			delete body.custom_data;
+			return requestOptions;
+		}
+		try {
+			value = JSON.parse(raw);
+		} catch (error) {
+			throw fail(
+				"'Custom Data' isn't valid JSON",
+				`Enter a JSON object, for example {"plan": "pro"}. ${(error as Error).message}`,
+			);
+		}
+	}
+	if (value !== null && (typeof value !== 'object' || Array.isArray(value))) {
+		throw fail(
+			"'Custom Data' must be a JSON object or null",
+			'Paddle stores custom data as key-value pairs, for example {"plan": "pro"}. Use null to remove it.',
+		);
+	}
+	body.custom_data = value as IDataObject | null;
+	requestOptions.body = body;
+	return requestOptions;
+}
+
 export function customDataField(): INodeProperties {
 	return {
 		displayName: 'Custom Data',
@@ -148,12 +191,12 @@ export function customDataField(): INodeProperties {
 		type: 'json',
 		default: '{}',
 		description:
-			'Your own structured key-value data as a JSON object. Replaces any existing custom data.',
+			'Your own structured key-value data as a JSON object. Replaces any existing custom data; null removes it.',
 		routing: {
 			send: {
 				type: 'body',
 				property: 'custom_data',
-				value: JSON_VALUE,
+				preSend: [parseCustomData],
 			},
 		},
 	};
