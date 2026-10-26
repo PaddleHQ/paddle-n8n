@@ -55,13 +55,14 @@ test('transaction items map to Paddle price_id and quantity', () => {
 	assert.deepStrictEqual(evaluate(items.routing.send.value, { $value: {} }), []);
 });
 
-test('sort expression defaults to id ascending', () => {
+test('sort defaults to id descending, matching Paddle', () => {
 	const sort = sortField({ resource: ['product'] }, [{ name: 'Name', value: 'name' }]);
+	assert.strictEqual(sort.options[0].default, 'DESC');
 	const expression = sort.options[0].routing.send.value;
-	assert.strictEqual(evaluate(expression, { $parameter: { sort: {} } }), 'id[ASC]');
+	assert.strictEqual(evaluate(expression, { $parameter: { sort: {} } }), 'id[DESC]');
 	assert.strictEqual(
-		evaluate(expression, { $parameter: { sort: { direction: 'DESC' } } }),
-		'id[DESC]',
+		evaluate(expression, { $parameter: { sort: { direction: 'ASC' } } }),
+		'id[ASC]',
 	);
 	assert.strictEqual(
 		evaluate(expression, { $parameter: { sort: { field: 'name', direction: 'DESC' } } }),

@@ -159,16 +159,15 @@ Some changes need more than a refresh:
 2. Go to **Developer Tools > Authentication**.
 3. Create an API key and give it these permissions:
 
-| Permission            | Access         | Used by                                  |
-| --------------------- | -------------- | ---------------------------------------- |
-| Customers             | Read and write | Customer operations                      |
-| Products              | Read and write | Product operations                       |
-| Prices                | Read and write | Price operations                         |
-| Discounts             | Read and write | Discount operations                      |
-| Subscriptions         | Read and write | Subscription operations                  |
-| Transactions          | Read and write | Transaction operations                   |
-| Notification settings | Read and write | Trigger node                             |
-| Event types           | Read           | Trigger node, and testing the credential |
+| Permission            | Access         | Used by                 |
+| --------------------- | -------------- | ----------------------- |
+| Customers             | Read and write | Customer operations     |
+| Products              | Read and write | Product operations      |
+| Prices                | Read and write | Price operations        |
+| Discounts             | Read and write | Discount operations     |
+| Subscriptions         | Read and write | Subscription operations |
+| Transactions          | Read and write | Transaction operations  |
+| Notification settings | Read and write | Trigger node            |
 
 4. Copy the key. Paddle only shows it once.
 

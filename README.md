@@ -39,18 +39,17 @@ The nodes connect with a Paddle API key.
 1. In Paddle, go to **Developer Tools > Authentication** and create an API key. See Paddle's [authentication guide](https://developer.paddle.com/api-reference/about/authentication).
 2. Give the key permissions for what you plan to use:
 
-   | Permission            | Access         | Needed for                              |
-   | --------------------- | -------------- | --------------------------------------- |
-   | Customers             | Read and write | Customer operations                     |
-   | Products              | Read and write | Product operations                      |
-   | Prices                | Read and write | Price operations                        |
-   | Discounts             | Read and write | Discount operations                     |
-   | Subscriptions         | Read and write | Subscription operations                 |
-   | Transactions          | Read and write | Transaction operations                  |
-   | Notification settings | Read and write | Paddle Billing Trigger                  |
-   | Event types           | Read           | Paddle Billing Trigger, credential test |
+   | Permission            | Access         | Needed for              |
+   | --------------------- | -------------- | ----------------------- |
+   | Customers             | Read and write | Customer operations     |
+   | Products              | Read and write | Product operations      |
+   | Prices                | Read and write | Price operations        |
+   | Discounts             | Read and write | Discount operations     |
+   | Subscriptions         | Read and write | Subscription operations |
+   | Transactions          | Read and write | Transaction operations  |
+   | Notification settings | Read and write | Paddle Billing Trigger  |
 
-   Read access is enough for **Get** and **Get Many**. Give the key only what your workflows need.
+   Read access is enough for **Get** and **Get Many**. Give the key only what your workflows need. Checking the credential uses an endpoint that needs no permissions, so it works with any valid key.
 
 3. In n8n, create a **Paddle Billing API** credential. Paste the key and choose the environment it was created in: **Live** or **Sandbox**. n8n checks the key when you save.
 
@@ -87,7 +86,7 @@ API keys only work in their own environment. If you use both, create a credentia
 - **Cancel** and **Pause** take effect immediately or at the end of the billing period. Pause can resume automatically on a date.
 - **Resume** resumes immediately or on a date. **On Resume** chooses whether to keep the existing billing dates or start a new billing period.
 
-**Creating records:** the main required fields are **Email** for customers, **Name** and **Tax Category** for products, the product, **Description**, **Unit Price Amount** and **Currency** for prices, **Description**, **Type** and **Amount** for discounts, and **Items** for transactions.
+**Creating records:** the main required fields are **Email** for customers, **Name** and **Tax Category** for products, the product, **Description**, **Unit Price Amount** and **Currency** for prices, **Description**, **Type** and **Amount** for discounts, and **Items** for transactions. Manually collected transactions also need **Billing Details**, with payment terms such as 14 days.
 
 **Errors** name the parameter Paddle rejected and say how to fix it. They include Paddle's request ID, which Paddle support can use to find the request.
 
@@ -134,7 +133,7 @@ Paddle must be able to reach your n8n webhook URL over the public internet. n8n 
 ## Limitations
 
 - **Resources:** the node covers customers, products, prices, discounts, subscriptions and transactions. For anything else in the [Paddle API](https://developer.paddle.com/api-reference/overview), such as adjustments or reports, use n8n's **HTTP Request** node with the **Paddle Billing API** credential.
-- **Rate limits:** Paddle limits how many requests you can send. If you hit the limit, the node says so. Process large lists in batches, for example with **Loop Over Items** and a **Wait** node.
+- **Rate limits:** Paddle allows 240 requests per minute from each IP address. **Return All** waits and retries when it hits the limit. For other operations, turn on **Retry On Fail** in the node's settings, or process items in batches with **Loop Over Items** and a **Wait** node. On n8n Cloud, other workflows sharing the same outgoing IP address count towards the same limit.
 - **Webhooks:** the trigger needs a public URL. Each active trigger workflow has its own notification destination in Paddle.
 
 ## Compatibility

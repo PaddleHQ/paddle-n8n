@@ -53,3 +53,38 @@ test('handles an empty list', async () => {
 	const ctx = fakeContext(0);
 	assert.deepStrictEqual(await paddlePagination.call(ctx, request({ per_page: 50 })), []);
 });
+
+test('waits and retries a rate-limited page instead of failing the run', async () => {
+	const ctx = fakeContext(60);
+	const real = ctx.makeRoutingRequest;
+	let failures = 0;
+	ctx.makeRoutingRequest = async (requestData) => {
+		if (requestData.options.qs.after === 'r30' && failures === 0) {
+			failures++;
+			throw Object.assign(new Error('rate limited'), {
+				httpCode: '429',
+				context: { retryAfterSeconds: 0.01 },
+			});
+		}
+		return real(requestData);
+	};
+	ctx.getNode = () => ({ name: 'Paddle Billing' });
+	const result = await paddlePagination.call(ctx, request({ per_page: 30 }));
+	assert.strictEqual(result.length, 60);
+	assert.strictEqual(failures, 1);
+});
+
+test('gives up after repeated rate limits', async () => {
+	const ctx = fakeContext(60);
+	ctx.getNode = () => ({ name: 'Paddle Billing', type: 'paddle', typeVersion: 1, parameters: {} });
+	ctx.makeRoutingRequest = async () => {
+		throw Object.assign(new Error('rate limited'), {
+			httpCode: '429',
+			context: { retryAfterSeconds: 0.01 },
+		});
+	};
+	await assert.rejects(
+		paddlePagination.call(ctx, request({ per_page: 30 })),
+		(error) => error.httpCode === '429',
+	);
+});

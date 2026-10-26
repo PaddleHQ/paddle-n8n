@@ -28,7 +28,13 @@ type NotificationSetting = {
 type WebhookStaticData = {
 	notificationSettingId?: string;
 	endpointSecretKey?: string;
+	// When the secret was last fetched from Paddle after a failed signature check.
+	secretRefreshedAt?: number;
 };
+
+// After a failed signature check, fetch the secret again at most this often, in case it
+// was rotated in Paddle. Limits API calls if someone sends unsigned requests.
+const SECRET_REFRESH_INTERVAL_MS = 60_000;
 
 const ALL_EVENTS = '*';
 
@@ -85,6 +91,19 @@ async function deleteSetting(this: IHookFunctions, id: string): Promise<void> {
 	} catch (error) {
 		if (!isNotFound(error)) throw new NodeApiError(this.getNode(), error as JsonObject);
 		this.logger.debug(`Paddle notification destination ${id} was already deleted`);
+	}
+}
+
+// Looks up the secret by this node's current webhook URL, which differs between test
+// and production, so it always matches the destination Paddle signed the request for.
+async function fetchEndpointSecret(this: IWebhookFunctions): Promise<string | undefined> {
+	const webhookUrl = this.getNodeWebhookUrl('default');
+	if (!webhookUrl) return undefined;
+	try {
+		return (await findSettingByDestination.call(this, webhookUrl))?.endpoint_secret_key;
+	} catch (error) {
+		this.logger.warn(`Could not fetch the Paddle webhook secret: ${(error as Error).message}`);
+		return undefined;
 	}
 }
 
@@ -248,27 +267,28 @@ export class PaddleTrigger implements INodeType {
 		const req = this.getRequestObject();
 		const staticData = this.getWorkflowStaticData('node') as WebhookStaticData;
 
-		let secret = staticData.endpointSecretKey;
-		if (!secret) {
-			// Static data can be missing (e.g. for test webhooks); look the secret up instead.
-			const webhookUrl = this.getNodeWebhookUrl('default');
-			const setting = webhookUrl
-				? await findSettingByDestination.call(this, webhookUrl)
-				: undefined;
-			secret = setting?.endpoint_secret_key;
+		if (!req.rawBody) await req.readRawBody();
+		const header = this.getHeaderData()['paddle-signature'];
+		const signature = Array.isArray(header) ? header[0] : header;
+		const isValid = (secret?: string) =>
+			Boolean(secret && verifyPaddleSignature(secret, signature, req.rawBody));
+
+		let valid = isValid(staticData.endpointSecretKey);
+		const canRefresh =
+			Date.now() - (staticData.secretRefreshedAt ?? 0) > SECRET_REFRESH_INTERVAL_MS;
+
+		if (!valid && canRefresh) {
+			// The secret is missing (e.g. for test webhooks) or may have been rotated in
+			// Paddle, so look it up again.
+			staticData.secretRefreshedAt = Date.now();
+			const secret = await fetchEndpointSecret.call(this);
+			if (secret) {
+				staticData.endpointSecretKey = secret;
+				valid = isValid(secret);
+			}
 		}
 
-		if (!req.rawBody) await req.readRawBody();
-		const signature = this.getHeaderData()['paddle-signature'];
-
-		if (
-			!secret ||
-			!verifyPaddleSignature(
-				secret,
-				Array.isArray(signature) ? signature[0] : signature,
-				req.rawBody,
-			)
-		) {
+		if (!valid) {
 			const res = this.getResponseObject();
 			res.status(401).send('Invalid Paddle signature').end();
 			return { noWebhookResponse: true };

@@ -313,7 +313,7 @@ export const dataRootProperty = {
 // `fields` lists the endpoint's sortable fields other than ID; Paddle can always sort by ID.
 export function sortField(show: DisplayShow, fields: INodePropertyOptions[] = []): INodeProperties {
 	const orderBy =
-		'={{ ($parameter.sort.field || "id") + "[" + ($parameter.sort.direction || "ASC") + "]" }}';
+		'={{ ($parameter.sort.field || "id") + "[" + ($parameter.sort.direction || "DESC") + "]" }}';
 	const send = { type: 'query' as const, property: 'order_by', value: orderBy };
 
 	const options: INodeProperties[] = [
@@ -325,7 +325,7 @@ export function sortField(show: DisplayShow, fields: INodePropertyOptions[] = []
 				{ name: 'Ascending', value: 'ASC' },
 				{ name: 'Descending', value: 'DESC' },
 			],
-			default: 'ASC',
+			default: 'DESC',
 			description: fields.length
 				? 'Order of the results'
 				: 'Order of the results by ID. Paddle IDs increase over time, so Descending returns the newest first.',
