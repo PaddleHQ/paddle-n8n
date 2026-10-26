@@ -18,9 +18,6 @@ type PaddleErrorBody = {
 	meta?: { request_id?: string };
 };
 
-const CREDENTIAL_HINT =
-	"Check the API key in the 'Paddle Billing API' credential, and that the credential's 'Environment' matches the environment the key was created in.";
-
 type StatusMessage = {
 	message: string;
 	description: string;
@@ -29,15 +26,27 @@ type StatusMessage = {
 	preferPaddleDetail?: boolean;
 };
 
+const ENVIRONMENT_HINT =
+	"check that the credential's 'Environment' matches the environment the key was created in";
+
+const KEY_REJECTED: StatusMessage = {
+	message: 'Paddle did not accept the API key',
+	description: `Check the API key in the 'Paddle Billing API' credential, and ${ENVIRONMENT_HINT}.`,
+};
+
+// Paddle reports every authentication failure as a 403; only the code tells a bad key
+// apart from a key that lacks a permission.
+const CODE_MESSAGES: Record<string, StatusMessage> = {
+	authentication_malformed: KEY_REJECTED,
+	authentication_missing: KEY_REJECTED,
+	invalid_token: KEY_REJECTED,
+};
+
 const STATUS_MESSAGES: Record<number, StatusMessage> = {
-	401: {
-		message: 'Paddle did not accept the API key',
-		description: CREDENTIAL_HINT,
-	},
+	401: KEY_REJECTED,
 	403: {
 		message: "The API key doesn't have permission for this action",
-		description:
-			'In Paddle, go to Developer Tools > Authentication and give the key permission for this resource.',
+		description: `In Paddle, go to Developer Tools > Authentication and give the key permission for this resource. If it already has it, ${ENVIRONMENT_HINT}.`,
 	},
 	404: {
 		message: "Paddle couldn't find the requested record",
@@ -56,7 +65,7 @@ const STATUS_MESSAGES: Record<number, StatusMessage> = {
 	},
 };
 
-const SERVER_MESSAGE = {
+const SERVER_MESSAGE: StatusMessage = {
 	message: 'Paddle is temporarily unavailable',
 	description: 'Try again in a few minutes.',
 };
@@ -81,7 +90,10 @@ export function paddleApiError(
 ): NodeApiError {
 	const paddle = ((body ?? {}) as PaddleErrorBody).error ?? {};
 	const fieldErrors = (paddle.errors ?? []).filter((e) => e.field);
-	const known = STATUS_MESSAGES[statusCode] ?? (statusCode >= 500 ? SERVER_MESSAGE : undefined);
+	const known =
+		(paddle.code ? CODE_MESSAGES[paddle.code] : undefined) ??
+		STATUS_MESSAGES[statusCode] ??
+		(statusCode >= 500 ? SERVER_MESSAGE : undefined);
 
 	let message: string;
 	const details: string[] = [];
@@ -91,10 +103,11 @@ export function paddleApiError(
 		message = `Paddle rejected the value of ${labels.join(', ')}`;
 		details.push(...fieldErrors.map((e) => `'${fieldLabel(e.field as string)}': ${e.message}`));
 	} else {
+		// A conflict's cause is only in Paddle's detail, e.g. which customer has the email.
 		message =
-			(known?.preferPaddleDetail ? paddle.detail : undefined) ??
-			known?.message ??
-			paddle.detail ??
+			(statusCode === 409 && paddle.detail) ||
+			known?.message ||
+			paddle.detail ||
 			`Paddle returned status ${statusCode}`;
 		if (paddle.detail && paddle.detail !== message) details.push(paddle.detail);
 	}

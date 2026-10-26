@@ -1,9 +1,11 @@
-import type {
-	IDataObject,
-	IExecuteSingleFunctions,
-	INodeExecutionData,
-	INodeProperties,
-	INodePropertyOptions,
+import {
+	NodeOperationError,
+	type IDataObject,
+	type IExecuteSingleFunctions,
+	type IHttpRequestOptions,
+	type INodeExecutionData,
+	type INodeProperties,
+	type INodePropertyOptions,
 } from 'n8n-workflow';
 import { throwOnPaddleError } from './errors';
 import { paddlePagination } from './pagination';
@@ -73,16 +75,24 @@ export const collectionModeOptions: INodePropertyOptions[] = [
 	{ name: 'Manual', value: 'manual', description: 'Paddle sends an invoice to be paid' },
 ];
 
-// Paddle expects RFC 3339 timestamps; n8n date pickers may omit the offset. A blank
-// optional date is left out of the request instead of failing with "Invalid time value".
-export const DATE_TIME_VALUE = '={{ $value ? new Date($value).toISOString() : undefined }}';
+// Paddle expects RFC 3339 timestamps. An ISO value without an offset is taken as UTC, so
+// the result doesn't depend on the timezone of the machine running n8n. An empty value is
+// left out of the request.
+export const DATE_TIME_VALUE =
+	'={{ $value ? new Date(/^\\d{4}-\\d\\d-\\d\\d[T ]\\d\\d:\\d\\d(:\\d\\d(\\.\\d+)?)?$/.test(String($value)) ? String($value) + "Z" : $value).toISOString() : undefined }}';
 
 // Accepts either a JSON string (typed in the editor) or an object (from an expression).
 export const JSON_VALUE = '={{ typeof $value === "string" ? JSON.parse($value) : $value }}';
 
-// Comma-separated list input, sent to Paddle as an array.
-export const LIST_VALUE =
-	'={{ (Array.isArray($value) ? $value : String($value).split(",")).map((v) => String(v).trim()).filter((v) => v) }}';
+// Comma-separated or array input, normalised to a trimmed list of non-empty strings.
+const LIST_EXPR =
+	'($value == null ? [] : Array.isArray($value) ? $value : String($value).split(",")).map((v) => String(v).trim()).filter((v) => v)';
+
+// Sent to Paddle as an array.
+export const LIST_VALUE = `={{ ${LIST_EXPR} }}`;
+
+// Comma-separated query value; an empty value is left out of the request entirely.
+export const CSV_QUERY_VALUE = `={{ ${LIST_EXPR}.join(",") || undefined }}`;
 
 export function resourceLocator(options: {
 	displayName: string;
@@ -130,6 +140,47 @@ export function resourceLocator(options: {
 	};
 }
 
+// Parsed in a preSend rather than an expression: an expression that throws is silently
+// dropped by n8n, which would save the record without its custom data.
+async function parseCustomData(
+	this: IExecuteSingleFunctions,
+	requestOptions: IHttpRequestOptions,
+): Promise<IHttpRequestOptions> {
+	const body = (requestOptions.body ?? {}) as IDataObject;
+	const raw = body.custom_data;
+	const itemIndex = this.getItemIndex();
+	const fail = (message: string, description: string) =>
+		new NodeOperationError(this.getNode(), `${message} [item ${itemIndex}]`, {
+			description,
+			itemIndex,
+		});
+
+	let value: unknown = raw;
+	if (typeof raw === 'string') {
+		if (!raw.trim()) {
+			delete body.custom_data;
+			return requestOptions;
+		}
+		try {
+			value = JSON.parse(raw);
+		} catch (error) {
+			throw fail(
+				"'Custom Data' isn't valid JSON",
+				`Enter a JSON object, for example {"plan": "pro"}. ${(error as Error).message}`,
+			);
+		}
+	}
+	if (value !== null && (typeof value !== 'object' || Array.isArray(value))) {
+		throw fail(
+			"'Custom Data' must be a JSON object or null",
+			'Paddle stores custom data as key-value pairs, for example {"plan": "pro"}. Use null to remove it.',
+		);
+	}
+	body.custom_data = value as IDataObject | null;
+	requestOptions.body = body;
+	return requestOptions;
+}
+
 export function customDataField(): INodeProperties {
 	return {
 		displayName: 'Custom Data',
@@ -137,12 +188,12 @@ export function customDataField(): INodeProperties {
 		type: 'json',
 		default: '{}',
 		description:
-			'Your own structured key-value data as a JSON object. Replaces any existing custom data.',
+			'Your own structured key-value data as a JSON object. Replaces any existing custom data; null removes it.',
 		routing: {
 			send: {
 				type: 'body',
 				property: 'custom_data',
-				value: JSON_VALUE,
+				preSend: [parseCustomData],
 			},
 		},
 	};
@@ -214,7 +265,7 @@ export function multiQueryFilter(
 			send: {
 				type: 'query',
 				property: query,
-				value: '={{ $value.join(",") }}',
+				value: CSV_QUERY_VALUE,
 			},
 		},
 	};
@@ -238,8 +289,7 @@ export function queryFilter(
 			send: {
 				type: 'query',
 				property: query,
-				// Paddle takes comma-separated lists; drop whitespace around the commas.
-				value: '={{ String($value).split(",").map((v) => v.trim()).filter((v) => v).join(",") }}',
+				value: CSV_QUERY_VALUE,
 			},
 		},
 	};
@@ -306,7 +356,7 @@ export function sortField(show: DisplayShow, fields: INodePropertyOptions[] = []
 }
 
 // "Simplify" toggle for Get and Get Many. `simplify` picks at most 10 fields, flattened
-// where possible, from one Paddle record.
+// where possible, from one Paddle record, and keeps any related data chosen in Include.
 export function simplifyField(
 	show: DisplayShow,
 	simplify: (record: IDataObject) => IDataObject,
