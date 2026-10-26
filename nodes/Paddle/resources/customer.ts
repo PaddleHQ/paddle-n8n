@@ -8,6 +8,7 @@ import {
 	queryFilter,
 	resourceLocator,
 	sortField,
+	TEXT_VALUE,
 } from '../shared/descriptions';
 
 const show = { resource: ['customer'] };
@@ -38,7 +39,7 @@ const localeField: INodeProperties = {
 	default: '',
 	placeholder: 'e.g. en',
 	description: 'Valid IETF BCP 47 short form locale tag. Defaults to "en" in Paddle.',
-	routing: { send: { type: 'body', property: 'locale' } },
+	routing: { send: { type: 'body', property: 'locale', value: TEXT_VALUE } },
 };
 
 export const customerDescription: INodeProperties[] = [
@@ -148,7 +149,7 @@ export const customerDescription: INodeProperties[] = [
 				placeholder: 'name@email.com',
 				default: '',
 				description: 'Email address for the customer',
-				routing: { send: { type: 'body', property: 'email' } },
+				routing: { send: { type: 'body', property: 'email', value: TEXT_VALUE } },
 			},
 			localeField,
 			nameField,

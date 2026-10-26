@@ -10,6 +10,7 @@ import {
 	resourceLocator,
 	simplifyField,
 	sortField,
+	TEXT_VALUE,
 } from '../shared/descriptions';
 import { simplifyProduct } from '../shared/simplify';
 
@@ -45,7 +46,7 @@ const productFields = (): INodeProperties[] => [
 		type: 'string',
 		default: '',
 		description: 'URL of an image for the product, shown at checkout and on invoices',
-		routing: { send: { type: 'body', property: 'image_url' } },
+		routing: { send: { type: 'body', property: 'image_url', value: TEXT_VALUE } },
 	},
 	{
 		displayName: 'Type',
@@ -196,7 +197,7 @@ export const productDescription: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description: 'Name of the product',
-				routing: { send: { type: 'body', property: 'name' } },
+				routing: { send: { type: 'body', property: 'name', value: TEXT_VALUE } },
 			},
 			{
 				displayName: 'Status',

@@ -12,6 +12,7 @@ import {
 	resourceLocator,
 	simplifyField,
 	sortField,
+	TEXT_VALUE,
 } from '../shared/descriptions';
 import { simplifyDiscount } from '../shared/simplify';
 
@@ -28,6 +29,19 @@ const discountTypeOptions: INodePropertyOptions[] = [
 	{ name: 'Percentage', value: 'percentage', description: 'Percentage off the total' },
 ];
 
+const currencyField = (extra: Partial<INodeProperties> = {}): INodeProperties => ({
+	displayName: 'Currency',
+	name: 'currencyCode',
+	type: 'options',
+	options: currencyOptions,
+	default: 'USD',
+	description: 'Currency of the amount. Required for flat and flat per seat discounts.',
+	routing: { send: { type: 'body', property: 'currency_code' } },
+	...extra,
+});
+
+const descriptionText = 'Short description for your reference. Not shown to customers.';
+
 const amountDescription =
 	'Percentage (e.g. 10 for 10%) for percentage discounts, or an amount in the lowest denomination of the currency (e.g. 500 for 5.00 USD) for flat discounts';
 
@@ -39,17 +53,8 @@ const discountFields = (): INodeProperties[] => [
 		type: 'string',
 		default: '',
 		description:
-			'Code customers enter at checkout. Leave empty for a discount that can only be applied by you.',
-		routing: { send: { type: 'body', property: 'code' } },
-	},
-	{
-		displayName: 'Currency',
-		name: 'currencyCode',
-		type: 'options',
-		options: currencyOptions,
-		default: 'USD',
-		description: 'Currency of the amount. Required for flat and flat per seat discounts.',
-		routing: { send: { type: 'body', property: 'currency_code' } },
+			'Code customers enter at checkout. If empty and Enabled for Checkout is on, Paddle generates a random code.',
+		routing: { send: { type: 'body', property: 'code', value: TEXT_VALUE } },
 	},
 	customDataField(),
 	{
@@ -192,7 +197,7 @@ export const discountDescription: INodeProperties[] = [
 		required: true,
 		default: '',
 		displayOptions: { show: showFor('create') },
-		description: 'Short description for the discount, shown on invoices and in checkout',
+		description: descriptionText,
 		routing: { send: { type: 'body', property: 'description' } },
 	},
 	{
@@ -217,6 +222,10 @@ export const discountDescription: INodeProperties[] = [
 		description: amountDescription,
 		routing: { send: { type: 'body', property: 'amount' } },
 	},
+	currencyField({
+		required: true,
+		displayOptions: { show: { ...showFor('create'), type: ['flat', 'flat_per_seat'] } },
+	}),
 	{
 		displayName: 'Additional Fields',
 		name: 'additionalFields',
@@ -237,6 +246,7 @@ export const discountDescription: INodeProperties[] = [
 		displayOptions: { show: showFor('update') },
 		options: [
 			...discountFields(),
+			currencyField(),
 			{
 				displayName: 'Amount',
 				name: 'amount',
@@ -244,15 +254,15 @@ export const discountDescription: INodeProperties[] = [
 				default: '',
 				placeholder: 'e.g. 10',
 				description: amountDescription,
-				routing: { send: { type: 'body', property: 'amount' } },
+				routing: { send: { type: 'body', property: 'amount', value: TEXT_VALUE } },
 			},
 			{
 				displayName: 'Description',
 				name: 'description',
 				type: 'string',
 				default: '',
-				description: 'Short description for the discount, shown on invoices and in checkout',
-				routing: { send: { type: 'body', property: 'description' } },
+				description: descriptionText,
+				routing: { send: { type: 'body', property: 'description', value: TEXT_VALUE } },
 			},
 			{
 				displayName: 'Status',
