@@ -81,6 +81,9 @@ export const collectionModeOptions: INodePropertyOptions[] = [
 export const DATE_TIME_VALUE =
 	'={{ $value ? new Date(/^\\d{4}-\\d\\d-\\d\\d[T ]\\d\\d:\\d\\d(:\\d\\d(\\.\\d+)?)?$/.test(String($value)) ? String($value) + "Z" : $value).toISOString() : undefined }}';
 
+// An optional text field that was added but left blank is left out, as Paddle rejects "".
+export const TEXT_VALUE = '={{ String($value).trim() ? $value : undefined }}';
+
 // Accepts either a JSON string (typed in the editor) or an object (from an expression).
 export const JSON_VALUE = '={{ typeof $value === "string" ? JSON.parse($value) : $value }}';
 

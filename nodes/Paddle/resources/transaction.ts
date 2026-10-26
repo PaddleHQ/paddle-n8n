@@ -12,6 +12,7 @@ import {
 	resourceLocator,
 	simplifyField,
 	sortField,
+	TEXT_VALUE,
 } from '../shared/descriptions';
 import { simplifyTransaction } from '../shared/simplify';
 
@@ -55,7 +56,7 @@ const idField = (displayName: string, name: string, property: string, example: s
 		type: 'string',
 		default: '',
 		placeholder: `e.g. ${example}`,
-		routing: { send: { type: 'body', property } },
+		routing: { send: { type: 'body', property, value: TEXT_VALUE } },
 	}) as INodeProperties;
 
 export const transactionDescription: INodeProperties[] = [
@@ -243,7 +244,8 @@ export const transactionDescription: INodeProperties[] = [
 				type: 'options',
 				options: currencyOptions,
 				default: 'USD',
-				description: 'Currency for the transaction',
+				description:
+					'Currency for the transaction. Must be USD, EUR or GBP when Collection Mode is Manual.',
 				routing: { send: { type: 'body', property: 'currency_code' } },
 			},
 			customDataField(),

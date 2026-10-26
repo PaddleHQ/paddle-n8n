@@ -62,17 +62,17 @@ export const PADDLE_EVENTS: INodePropertyOptions[] = [
 	{
 		name: 'Business Created',
 		value: 'business.created',
-		description: 'Occurs when an business is created',
+		description: 'Occurs when a business is created',
 	},
 	{
 		name: 'Business Imported',
 		value: 'business.imported',
-		description: 'Occurs when an business is imported',
+		description: 'Occurs when a business is imported',
 	},
 	{
 		name: 'Business Updated',
 		value: 'business.updated',
-		description: 'Occurs when an business is updated',
+		description: 'Occurs when a business is updated',
 	},
 	{
 		name: 'Client Token Created',
@@ -92,17 +92,17 @@ export const PADDLE_EVENTS: INodePropertyOptions[] = [
 	{
 		name: 'Customer Created',
 		value: 'customer.created',
-		description: 'Occurs when an customer is created',
+		description: 'Occurs when a customer is created',
 	},
 	{
 		name: 'Customer Imported',
 		value: 'customer.imported',
-		description: 'Occurs when an customer is imported',
+		description: 'Occurs when a customer is imported',
 	},
 	{
 		name: 'Customer Updated',
 		value: 'customer.updated',
-		description: 'Occurs when an customer is updated',
+		description: 'Occurs when a customer is updated',
 	},
 	{
 		name: 'Discount Created',
@@ -128,6 +128,16 @@ export const PADDLE_EVENTS: INodePropertyOptions[] = [
 		name: 'Discount Updated',
 		value: 'discount.updated',
 		description: 'Occurs when a discount is updated',
+	},
+	{
+		name: 'Meter Created',
+		value: 'meter.created',
+		description: 'Occurs when a meter is created',
+	},
+	{
+		name: 'Meter Updated',
+		value: 'meter.updated',
+		description: 'Occurs when a meter is updated',
 	},
 	{
 		name: 'Payment Method Deleted',
@@ -183,12 +193,12 @@ export const PADDLE_EVENTS: INodePropertyOptions[] = [
 	{
 		name: 'Report Created',
 		value: 'report.created',
-		description: 'Occurs when an report is created',
+		description: 'Occurs when a report is created',
 	},
 	{
 		name: 'Report Updated',
 		value: 'report.updated',
-		description: 'Occurs when an report is updated',
+		description: 'Occurs when a report is updated',
 	},
 	{
 		name: 'Subscription Activated',
@@ -293,5 +303,10 @@ export const PADDLE_EVENTS: INodePropertyOptions[] = [
 		name: 'Transaction Updated',
 		value: 'transaction.updated',
 		description: 'Occurs when a transaction is updated',
+	},
+	{
+		name: 'Usage Balance Depleted',
+		value: 'usage_balance.depleted',
+		description: 'Occurs when a usage balance is depleted',
 	},
 ];

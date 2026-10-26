@@ -12,6 +12,7 @@ import {
 	resourceLocator,
 	simplifyField,
 	sortField,
+	TEXT_VALUE,
 } from '../shared/descriptions';
 import { simplifyPrice } from '../shared/simplify';
 
@@ -71,7 +72,7 @@ const priceFields = (): INodeProperties[] => [
 		default: '',
 		description:
 			'Name of the price, shown to customers at checkout and on invoices (e.g. "Monthly")',
-		routing: { send: { type: 'body', property: 'name' } },
+		routing: { send: { type: 'body', property: 'name', value: TEXT_VALUE } },
 	},
 	{
 		displayName: 'Quantity',
@@ -314,7 +315,7 @@ export const priceDescription: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description: 'Internal description for the price, not shown to customers',
-				routing: { send: { type: 'body', property: 'description' } },
+				routing: { send: { type: 'body', property: 'description', value: TEXT_VALUE } },
 			},
 			{
 				displayName: 'Status',
@@ -354,7 +355,15 @@ export const priceDescription: INodeProperties[] = [
 						],
 					},
 				],
-				routing: { send: { type: 'body', property: 'unit_price', value: '={{ $value.price }}' } },
+				routing: {
+					send: {
+						type: 'body',
+						property: 'unit_price',
+						// Left out when Amount is blank, instead of sending "" which Paddle rejects.
+						value:
+							'={{ $value.price && String($value.price.amount).trim() ? $value.price : undefined }}',
+					},
+				},
 			},
 		],
 	},

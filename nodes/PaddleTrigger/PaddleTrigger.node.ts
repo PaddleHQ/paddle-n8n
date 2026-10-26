@@ -67,10 +67,22 @@ async function findSettingByDestination(
 	this: IHookFunctions | IWebhookFunctions,
 	destination: string,
 ): Promise<NotificationSetting | undefined> {
-	const response = (await paddleApiRequest.call(this, 'GET', '/notification-settings', undefined, {
-		per_page: 200,
-	})) as PaddleListResponse<NotificationSetting>;
-	return response.data.find((setting) => setting.destination === destination);
+	const qs: IDataObject = { per_page: 200 };
+	for (;;) {
+		const response = (await paddleApiRequest.call(
+			this,
+			'GET',
+			'/notification-settings',
+			undefined,
+			qs,
+		)) as PaddleListResponse<NotificationSetting>;
+		const match = response.data.find((setting) => setting.destination === destination);
+		if (match) return match;
+
+		const last = response.data[response.data.length - 1];
+		if (!response.meta?.pagination?.has_more || !last) return undefined;
+		qs.after = last.id;
+	}
 }
 
 async function deleteSetting(this: IHookFunctions, id: string): Promise<void> {
