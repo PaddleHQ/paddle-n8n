@@ -28,7 +28,7 @@ Install these first:
 You also need:
 
 - access to the repository: **PaddleHQ/paddle-n8n** on GitHub
-- a **Paddle sandbox** account. Sign in at [sandbox-login.paddle.com](https://sandbox-login.paddle.com/).
+- a **Paddle sandbox** account. Sign in at [sandbox-login.paddle.com](https://sandbox-login.paddle.com/?utm_source=dx&utm_medium=paddle-n8n).
 
 Check everything is installed:
 
@@ -155,7 +155,7 @@ Some changes need more than a refresh:
 
 ## 5. Create a Paddle API key
 
-1. Sign in to the [Paddle sandbox](https://sandbox-login.paddle.com/).
+1. Sign in to the [Paddle sandbox](https://sandbox-login.paddle.com/?utm_source=dx&utm_medium=paddle-n8n).
 2. Go to **Developer Tools > Authentication**.
 3. Create an API key and give it these permissions:
 
