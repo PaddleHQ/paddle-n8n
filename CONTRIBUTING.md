@@ -7,7 +7,7 @@ Thanks for helping improve the Paddle Billing nodes for n8n. This guide covers w
 - Node.js 22 or later
 - [pnpm](https://pnpm.io/installation). The version is pinned in `package.json` under `packageManager`.
 - Docker, to run n8n locally
-- A [Paddle sandbox](https://sandbox-login.paddle.com/) account and API key
+- A [Paddle sandbox](https://sandbox-login.paddle.com/?utm_source=dx&utm_medium=paddle-n8n) account and API key
 
 ## Commands
 

@@ -5,7 +5,9 @@
 [![npm downloads](https://img.shields.io/npm/dm/%40paddle%2Fn8n-nodes-paddle)](https://www.npmjs.com/package/@paddle/n8n-nodes-paddle)
 [![License](https://img.shields.io/github/license/PaddleHQ/paddle-n8n)](LICENSE)
 
-Official [Paddle Billing](https://www.paddle.com/billing) nodes for [n8n](https://n8n.io/). Manage customers, your catalog, subscriptions and transactions, and start workflows when things happen in Paddle.
+[Paddle Billing](https://developer.paddle.com/?utm_source=dx&utm_medium=paddle-n8n) is the developer-first merchant of record, designed for modern SaaS, AI, mobile app, and digital product businesses. We take care of payments, tax, subscriptions, and metrics with one unified API that does it all.
+
+This package contains the official Paddle Billing nodes for [n8n](https://n8n.io/). Manage customers, your catalog, subscriptions and transactions, and start workflows when things happen in Paddle.
 
 > This package supports **Paddle Billing** only. The Paddle node built into n8n targets Paddle Classic, which uses vendor ID and auth code credentials and isn't compatible.
 
@@ -36,7 +38,7 @@ Then restart n8n. See n8n's [community nodes installation guide](https://docs.n8
 
 The nodes connect with a Paddle API key.
 
-1. In Paddle, go to **Developer Tools > Authentication** and create an API key. See Paddle's [authentication guide](https://developer.paddle.com/api-reference/about/authentication).
+1. In Paddle, go to **Developer Tools > Authentication** and create an API key. See Paddle's [authentication guide](https://developer.paddle.com/api-reference/about/authentication?utm_source=dx&utm_medium=paddle-n8n).
 2. Give the key permissions for what you plan to use:
 
    | Permission            | Access         | Needed for              |
@@ -96,7 +98,7 @@ API keys only work in their own environment. If you use both, create a credentia
 
 Starts a workflow when the Paddle events you pick occur, for example `subscription.created` or `transaction.completed`. Choose `*` to receive every event type Paddle offers when the workflow is activated. To pick up event types Paddle adds later, deactivate and reactivate the workflow.
 
-- Activating the workflow creates a Paddle [notification destination](https://developer.paddle.com/webhooks/overview) for the workflow's webhook URL. Deactivating it deletes the destination.
+- Activating the workflow creates a Paddle [notification destination](https://developer.paddle.com/webhooks/overview?utm_source=dx&utm_medium=paddle-n8n) for the workflow's webhook URL. Deactivating it deletes the destination.
 - Every request is checked against its `Paddle-Signature` header. Requests with a missing, invalid or stale (older than 5 minutes) signature are rejected with `401`.
 - Turn on **Include Simulated Events** to receive events from Paddle's webhook simulator (**Developer Tools > Simulations**).
 - The output is the full notification payload: `event_id`, `event_type`, `occurred_at`, `notification_id` and `data`.
@@ -132,7 +134,7 @@ Paddle must be able to reach your n8n webhook URL over the public internet. n8n 
 
 ## Limitations
 
-- **Resources:** the node covers customers, products, prices, discounts, subscriptions and transactions. For anything else in the [Paddle API](https://developer.paddle.com/api-reference/overview), such as adjustments or reports, use n8n's **HTTP Request** node with the **Paddle Billing API** credential.
+- **Resources:** the node covers customers, products, prices, discounts, subscriptions and transactions. For anything else in the [Paddle API](https://developer.paddle.com/api-reference/overview?utm_source=dx&utm_medium=paddle-n8n), such as adjustments or reports, use n8n's **HTTP Request** node with the **Paddle Billing API** credential.
 - **Rate limits:** Paddle allows 240 requests per minute from each IP address. **Return All** waits and retries when it hits the limit. For other operations, turn on **Retry On Fail** in the node's settings, or process items in batches with **Loop Over Items** and a **Wait** node. On n8n Cloud, other workflows sharing the same outgoing IP address count towards the same limit.
 - **Webhooks:** the trigger needs a public URL. Each active trigger workflow has its own notification destination in Paddle.
 
@@ -144,7 +146,7 @@ Paddle must be able to reach your n8n webhook URL over the public internet. n8n 
 ## Support
 
 - **Bugs and feature requests:** [open an issue](https://github.com/PaddleHQ/paddle-n8n/issues) on GitHub.
-- **Questions about your Paddle account or a failed request:** contact [Paddle support](https://www.paddle.com/help). Include the Paddle request ID from the error message.
+- **Questions about your Paddle account or a failed request:** contact [Paddle support](https://www.paddle.com/help?utm_source=dx&utm_medium=paddle-n8n). Include the Paddle request ID from the error message.
 - **Questions about n8n itself:** see the [n8n community forum](https://community.n8n.io/).
 
 ## Version history
@@ -157,8 +159,8 @@ To work on the nodes locally, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Resources
 
-- [Paddle API reference](https://developer.paddle.com/api-reference/overview)
-- [Paddle webhooks](https://developer.paddle.com/webhooks/overview)
+- [Paddle API reference](https://developer.paddle.com/api-reference/overview?utm_source=dx&utm_medium=paddle-n8n)
+- [Paddle webhooks](https://developer.paddle.com/webhooks/overview?utm_source=dx&utm_medium=paddle-n8n)
 - [n8n community nodes documentation](https://docs.n8n.io/integrations/#community-nodes)
 
 ## License
