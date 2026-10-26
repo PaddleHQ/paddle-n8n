@@ -275,7 +275,6 @@ export class PaddleTrigger implements INodeType {
 
 		let valid = isValid(staticData.endpointSecretKey);
 		const canRefresh =
-			!staticData.endpointSecretKey ||
 			Date.now() - (staticData.secretRefreshedAt ?? 0) > SECRET_REFRESH_INTERVAL_MS;
 
 		if (!valid && canRefresh) {

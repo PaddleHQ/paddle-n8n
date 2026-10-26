@@ -21,9 +21,6 @@ type PaddleErrorBody = {
 type StatusMessage = {
 	message: string;
 	description: string;
-	// Use Paddle's own explanation as the headline when it has one, e.g. for a 409
-	// "customer email conflicts with customer of id ctm_…".
-	preferPaddleDetail?: boolean;
 };
 
 const ENVIRONMENT_HINT =
@@ -56,7 +53,6 @@ const STATUS_MESSAGES: Record<number, StatusMessage> = {
 	409: {
 		message: "The record's current state doesn't allow this change",
 		description: 'Check the record in Paddle, then try again.',
-		preferPaddleDetail: true,
 	},
 	429: {
 		message: 'Paddle is limiting how many requests this workflow sends',
