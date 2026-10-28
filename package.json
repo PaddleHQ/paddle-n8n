@@ -1,6 +1,6 @@
 {
 	"name": "@paddle/n8n-nodes-paddle",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "n8n nodes for Paddle Billing: manage customers, catalog, subscriptions and transactions, and trigger workflows from Paddle webhooks.",
 	"license": "MIT",
 	"homepage": "https://github.com/PaddleHQ/paddle-n8n",
